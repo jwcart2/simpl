@@ -1204,7 +1204,7 @@ local function write_misc_file(out, block, format)
 end
 
 -------------------------------------------------------------------------------
-local function sort_module_and_misc_files(node, kind, do_action, do_block, data)
+local function gather_module_and_misc_files(node, kind, do_action, do_block, data)
    local filename = NODE.get_file_name(node)
 
    local s,e,mod,suffix = string.find(filename,"/([%w%_%-]+)%.(%w%w)$")
@@ -1215,7 +1215,7 @@ local function sort_module_and_misc_files(node, kind, do_action, do_block, data)
 	  data.misc_files[#data.misc_files+1] = node
    end
 end
-simpl_write.sort_module_and_misc_files = sort_module_and_misc_files
+simpl_write.gather_module_and_misc_files = gather_module_and_misc_files
 
 -------------------------------------------------------------------------------
 local function get_dirs_and_filename_from_full_path(full_path, common_path)
@@ -1403,7 +1403,7 @@ local function write_simpl(head, out_dir, verbose)
    end
 
    local file_action = {
-	  ["file"] = sort_module_and_misc_files,
+	  ["file"] = gather_module_and_misc_files,
    }
 
    local modules = {}
