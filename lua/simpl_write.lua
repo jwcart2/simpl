@@ -1411,7 +1411,6 @@ local function write_simpl(head, out_dir, verbose)
    local file_data = {
 	  ["modules"] = modules,
 	  ["misc_files"] = misc_files,
-	  ["mls_files"] = mls_files,
    }
 
    add_orders_to_policy(NODE.get_block_1(head))
