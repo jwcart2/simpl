@@ -3,7 +3,7 @@ local MSG = require "messages"
 local NODE = require "node"
 local TREE = require "tree"
 local IFDEF = require "node_ifdef"
-local STRING = require "common_string"
+local BUFFER = require "buffer"
 local TABLE = require "common_table"
 local MACRO = require "node_macro"
 local TREE = require "tree"
@@ -284,14 +284,14 @@ local function buffer_handleunknown_rule(buf, format, node)
    local data = NODE.get_data(node) or {}
    local value = tostring(data[1])
    local str = "handleunknown "..value..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_mls_rule(buf, format, node)
    local data = NODE.get_data(node) or {}
    local value = tostring(data[1])
    local str = "mls "..value..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_filecon_rule(buf, format, node)
@@ -300,7 +300,7 @@ local function buffer_filecon_rule(buf, format, node)
    local file_type = tostring(data[2])
    local context = compose_context(data[3])
    local str = "filecon "..path.." "..file_type.." "..context..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_common_rule(buf, format, node)
@@ -308,14 +308,14 @@ local function buffer_common_rule(buf, format, node)
    local common= tostring(data[1])
    local perm_list = compose_enclosed_list(data[2])
    local str = "common "..common.." "..perm_list..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_class_decl_rule(buf, format, node)
    local data = NODE.get_data(node) or {}
    local class = tostring(data[1])
    local str = "decl class "..class..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_class_rule(buf, format, node)
@@ -324,7 +324,7 @@ local function buffer_class_rule(buf, format, node)
    local common = data[2] or "<<none>>"
    local perm_list = compose_enclosed_list(data[3])
    local str = "class "..class.." "..common.." "..perm_list..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_classpermset_rule(buf, format, node)
@@ -332,7 +332,7 @@ local function buffer_classpermset_rule(buf, format, node)
    local name = tostring(data[1])
    local classperms = compose_classperms(data[2])
    local str = "classpermset "..name.." "..classperms..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_default_rule(buf, format, node)
@@ -346,23 +346,23 @@ local function buffer_default_rule(buf, format, node)
    else
 	  str = kind.." "..class_list.." "..object..";"
    end
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_sensitivity_rule(buf, format, node)
    local data = NODE.get_data(node) or {}
    local sens = tostring(data[1])
    local str = "decl sensitivity "..sens..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
    local aliases = data[2]
    if aliases then
 	  if type(aliases) ~= "table" then
 		 str = "alias sensitivity "..tostring(aliases).." "..sens..";"
-		 STRING.add_to_buffer(buf, format, str)
+		 BUFFER.add_to_buffer(buf, format, str)
 	  else
 		 for i=1,#aliases do
 			str = "alias sensitivity "..tostring(aliases[i]).." "..sens..";"
-			STRING.add_to_buffer(buf, format, str)
+			BUFFER.add_to_buffer(buf, format, str)
 		 end
 	  end
    end
@@ -372,23 +372,23 @@ local function buffer_sensorder_rule(buf, format, node)
    local data = NODE.get_data(node) or {}
    local sens_list = compose_enclosed_list(data[1])
    local str = "order sensitivity "..sens_list..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_category_rule(buf, format, node)
    local data = NODE.get_data(node) or {}
    local category = tostring(data[1])
    local str = "category "..category..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
    local aliases = data[2]
    if aliases then
 	  if type(aliases) ~= "table" then
 		 str = "alias category "..tostring(aliases).." "..category..";"
-		 STRING.add_to_buffer(buf, format, str)
+		 BUFFER.add_to_buffer(buf, format, str)
 	  else
 		 for i=1,#aliases do
 			str = "alias category "..tostring(aliases[i]).." "..category..";"
-			STRING.add_to_buffer(buf, format, str)
+			BUFFER.add_to_buffer(buf, format, str)
 		 end
 	  end
    end
@@ -398,7 +398,7 @@ local function buffer_level_rule(buf, format, node)
    local data = NODE.get_data(node) or {}
    local level = compose_level(data[1])
    local str = "level "..level..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_aliaslevel_rule(buf, format, node)
@@ -406,7 +406,7 @@ local function buffer_aliaslevel_rule(buf, format, node)
    local alias = tostring(data[1])
    local level = compose_level(data[2])
    local str = "alias level "..alias.." "..level..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_aliasrange_rule(buf, format, node)
@@ -414,7 +414,7 @@ local function buffer_aliasrange_rule(buf, format, node)
    local alias = tostring(data[1])
    local range = compose_range(data[2])
    local str = "alias range "..alias.." "..range..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_mlsconstrain_rule(buf, format, node)
@@ -423,7 +423,7 @@ local function buffer_mlsconstrain_rule(buf, format, node)
    local perms = compose_set(data[2])
    local cstr = compose_constraint(data[3])
    local str = "mlsconstrain "..class.." "..perms.." "..cstr..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_mlsvalidatetrans_rule(buf, format, node)
@@ -431,28 +431,28 @@ local function buffer_mlsvalidatetrans_rule(buf, format, node)
    local class = compose_list(data[1])
    local cstr = compose_constraint(data[2])
    local str = "mlsvalidatetrans "..class.." "..cstr..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_policycap_rule(buf, format, node)
    local data = NODE.get_data(node) or {}
    local caps = compose_list(data[1])
    local str = "policycap "..caps..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_typeattr_rule(buf, format, node)
    local data = NODE.get_data(node) or {}
    local attr = tostring(data[1])
    local str = "typeattr "..attr..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_roleattr_rule(buf, format, node)
    local data = NODE.get_data(node) or {}
    local attr = tostring(data[1])
    local str = "roleattr "..attr..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_bool_rule(buf, format, node)
@@ -460,7 +460,7 @@ local function buffer_bool_rule(buf, format, node)
    local bool = tostring(data[1])
    local value = tostring(data[2])
    local str = "bool "..bool.." "..value..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_tunable_rule(buf, format, node)
@@ -468,14 +468,14 @@ local function buffer_tunable_rule(buf, format, node)
    local tunable = tostring(data[1])
    local value = tostring(data[2])
    local str = "tunable "..tunable.." "..value..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_type_rule(buf, format, node)
    local data = NODE.get_data(node) or {}
    local name = tostring(data[1])
    local str = "type "..name..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_typealias_rule(buf, format, node)
@@ -485,11 +485,11 @@ local function buffer_typealias_rule(buf, format, node)
    if aliases then
 	  if type(aliases) ~= "table" then
 		 local str = "alias type "..tostring(aliases).." "..name..";"
-		 STRING.add_to_buffer(buf, format, str)
+		 BUFFER.add_to_buffer(buf, format, str)
 	  else
 		 for i=1,#aliases do
 			local str = "alias type "..tostring(aliases[i]).." "..name..";"
-			STRING.add_to_buffer(buf, format, str)
+			BUFFER.add_to_buffer(buf, format, str)
 		 end
 	  end
    end
@@ -500,7 +500,7 @@ local function buffer_typebounds_rule(buf, format, node)
    local parent = tostring(data[1])
    local child = tostring(data[2])
    local str = "typebounds "..parent.." "..child..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_typeattrs_rule(buf, format, node)
@@ -508,7 +508,7 @@ local function buffer_typeattrs_rule(buf, format, node)
    local name = tostring(data[1])
    local attrs = compose_list(data[2])
    local str = "typeattrs "..name.." "..attrs..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_attrtypes_rule(buf, format, node)
@@ -516,14 +516,14 @@ local function buffer_attrtypes_rule(buf, format, node)
    local attr = tostring(data[1])
    local types = compose_set(data[2])
    local str = "attrtypes "..attr.." "..types..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_permissive_rule(buf, format, node)
    local data = NODE.get_data(node) or {}
    local name = tostring(data[1])
    local str = "permissive "..name..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_av_rule(buf, format, node)
@@ -534,7 +534,7 @@ local function buffer_av_rule(buf, format, node)
    local class = compose_list(data[3])
    local perms = compose_set(data[4])
    local str = kind.." "..src.." "..tgt.." "..class.." "..perms..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_xperm_rule(buf, format, node)
@@ -546,7 +546,7 @@ local function buffer_xperm_rule(buf, format, node)
    local perms = compose_set(data[4])
    local xperms = compose_xperms(data[5])
    local str = kind.." "..src.." "..tgt.." "..class.." "..perms.." "..xperms..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_typetrans_rule(buf, format, node)
@@ -557,7 +557,7 @@ local function buffer_typetrans_rule(buf, format, node)
    local obj = tostring(data[4])
    local file = data[5] or "nil"
    local str = "filetrans "..src.." "..tgt.." "..class.." "..obj.." "..file..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_typemember_rule(buf, format, node)
@@ -567,7 +567,7 @@ local function buffer_typemember_rule(buf, format, node)
    local class = compose_list(data[3])
    local obj = tostring(data[4])
    local str = "typemember "..src.." "..tgt.." "..class.." "..obj..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_typechange_rule(buf, format, node)
@@ -577,7 +577,7 @@ local function buffer_typechange_rule(buf, format, node)
    local class = compose_list(data[3])
    local obj = tostring(data[4])
    local str = "typechange "..src.." "..tgt.." "..class.." "..obj..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_rangetrans_rule(buf, format, node)
@@ -588,14 +588,14 @@ local function buffer_rangetrans_rule(buf, format, node)
    local class = data[3] or "nil"
    local range = compose_range(data[4])
    local str = kind.." "..src.." "..tgt.." "..class.." "..range..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_role_rule(buf, format, node)
    local data = NODE.get_data(node) or {}
    local role = tostring(data[1])
    local str = "role "..role..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_roletypes_rule(buf, format, node)
@@ -603,7 +603,7 @@ local function buffer_roletypes_rule(buf, format, node)
    local role = tostring(data[1])
    local types = compose_list(data[2])
    local str = "roletypes "..role.." "..types..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_roleattrs_rule(buf, format, node)
@@ -611,7 +611,7 @@ local function buffer_roleattrs_rule(buf, format, node)
    local role = tostring(data[1])
    local attrs = compose_list(data[2])
    local str = "roleattrs "..role.." "..attrs..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_roleallow_rule(buf, format, node)
@@ -619,7 +619,7 @@ local function buffer_roleallow_rule(buf, format, node)
    local role1 = tostring(data[1])
    local role2 = tostring(data[2])
    local str = "roleallow "..role1.." "..role2..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_roletrans_rule(buf, format, node)
@@ -629,7 +629,7 @@ local function buffer_roletrans_rule(buf, format, node)
    local class = tostring(data[3])
    local role2 = tostring(data[4])
    local str = "roletrans "..roles.." "..types.." "..class.." "..role2..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_user_rule(buf, format, node)
@@ -639,16 +639,16 @@ local function buffer_user_rule(buf, format, node)
    local mls_level = data[3] and compose_level(data[3])
    local mls_range = data[4] and compose_range(data[4])
    local str = "user "..user..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
    str = "userrole "..user.." "..roles..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
    if mls_level then
 	  str = "userlevel "..user.." "..mls_level..";"
-	  STRING.add_to_buffer(buf, format, str)
+	  BUFFER.add_to_buffer(buf, format, str)
    end
    if mls_range then
 	  str = "userrange "..user.." "..mls_range..";"
-	  STRING.add_to_buffer(buf, format, str)
+	  BUFFER.add_to_buffer(buf, format, str)
    end
 end
 
@@ -658,7 +658,7 @@ local function buffer_constrain_rule(buf, format, node)
    local perms = compose_set(data[2])
    local cstr = compose_constraint(data[3])
    local str = "constrain "..class.." "..perms.." "..cstr..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_validatetrans_rule(buf, format, node)
@@ -666,14 +666,14 @@ local function buffer_validatetrans_rule(buf, format, node)
    local class = compose_list(data[1])
    local cstr = compose_constraint(data[2])
    local str = "validatetrans "..class.." "..cstr..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_sid_decl_rule(buf, format, node)
    local data = NODE.get_data(node) or {}
    local sid = tostring(data[1])
    local str = "decl sid "..sid..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_sid_rule(buf, format, node)
@@ -681,7 +681,7 @@ local function buffer_sid_rule(buf, format, node)
    local sid = tostring(data[1])
    local context = compose_context(data[2])
    local str = "sid "..sid.." "..context..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_fsuse_rule(buf, format, node)
@@ -691,7 +691,7 @@ local function buffer_fsuse_rule(buf, format, node)
    local fs = tostring(data[1])
    local context = compose_context(data[2])
    local str = "fsuse "..fs_type.." "..fs.." "..context..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_genfscon_rule(buf, format, node)
@@ -706,7 +706,7 @@ local function buffer_genfscon_rule(buf, format, node)
    else
 	  str = str..file_type.." "..context..";"
    end
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_portcon_rule(buf, format, node)
@@ -715,7 +715,7 @@ local function buffer_portcon_rule(buf, format, node)
    local portnum = compose_number_range(data[2])
    local context = compose_context(data[3])
    local str = "portcon "..protocol.." "..portnum.." "..context..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_netifcon_rule(buf, format, node)
@@ -724,7 +724,7 @@ local function buffer_netifcon_rule(buf, format, node)
    local context1 = compose_context(data[2])
    local context2 = compose_context(data[3])
    local str = "netifcon "..interface.." "..context1.." "..context2..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_nodecon4_rule(buf, format, node)
@@ -733,7 +733,7 @@ local function buffer_nodecon4_rule(buf, format, node)
    local mask4 = tostring(data[2])
    local context = compose_context(data[3])
    local str = "nodecon4 "..addr4.." "..mask4.." "..context..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_nodecon6_rule(buf, format, node)
@@ -742,7 +742,7 @@ local function buffer_nodecon6_rule(buf, format, node)
    local mask6 = tostring(data[2])
    local context = compose_context(data[3])
    local str = "nodecon6 "..addr6.." "..mask6.." "..context..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_pirqcon_rule(buf, format, node)
@@ -750,7 +750,7 @@ local function buffer_pirqcon_rule(buf, format, node)
    local value = tostring(data[1])
    local context = compose_context(data[2])
    local str = "pirqcon "..value.." "..context..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_iomemcon_rule(buf, format, node)
@@ -758,7 +758,7 @@ local function buffer_iomemcon_rule(buf, format, node)
    local value = compose_number_range(data[1])
    local context = compose_context(data[2])
    local str = "iomemcon "..value.." "..context..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_ioportcon_rule(buf, format, node)
@@ -766,7 +766,7 @@ local function buffer_ioportcon_rule(buf, format, node)
    local value = compose_number_range(data[1])
    local context = compose_context(data[2])
    local str = "ioportcon "..value.." "..context..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_pcidevicecon_rule(buf, format, node)
@@ -774,7 +774,7 @@ local function buffer_pcidevicecon_rule(buf, format, node)
    local value = compose_number_range(data[1])
    local context = compose_context(data[2])
    local str = "pcidevicecon "..value.." "..context..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_devicetreecon_rule(buf, format, node)
@@ -782,7 +782,7 @@ local function buffer_devicetreecon_rule(buf, format, node)
    local path = tostring(data[1])
    local context = compose_context(data[2])
    local str = "devicetreecon "..value.." "..context..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_call_rule(buf, format, node)
@@ -790,7 +790,7 @@ local function buffer_call_rule(buf, format, node)
    local args = MACRO.get_call_orig_args(node)
    local str_args = compose_call_args(args)
    local str = "call "..tostring(name)..str_args..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_def_rule(buf, format, node)
@@ -808,7 +808,7 @@ local function buffer_def_rule(buf, format, node)
 	  MSG.error_message("Unknown def rule: "..tostring(name))
    end
    local str = "def "..kind.." "..tostring(name).." "..list..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_order_rule(buf, format, node)
@@ -816,20 +816,20 @@ local function buffer_order_rule(buf, format, node)
    local flavor = tostring(node_data[1])
    local order = compose_enclosed_list(node_data[2])
    local str = "order "..flavor.." "..order..";"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_comment_rule(buf, format, node)
    local node_data = NODE.get_data(node)
    local comment = node_data[1]
    local str = "#"..tostring(comment)
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_blank_rule(buf, format, node)
    local node_data = NODE.get_data(node)
    local str = ""
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
 end
 
 local function buffer_module_rule(buf, format, node)
@@ -927,15 +927,15 @@ local function buffer_conditional_rules(buf, format, node, do_rules, do_blocks)
    local then_block = NODE.get_then_block(node)
    local else_block = NODE.get_else_block(node)
    if then_block then
-	  STRING.format_increase_depth(format)
+	  BUFFER.format_increase_depth(format)
 	  buffer_block_rules(buf, format, then_block, do_rules, do_blocks)
-	  STRING.format_decrease_depth(format)
+	  BUFFER.format_decrease_depth(format)
    end
    if else_block then
-	  STRING.add_to_buffer(buf, format, "} else {")
-	  STRING.format_increase_depth(format)
+	  BUFFER.add_to_buffer(buf, format, "} else {")
+	  BUFFER.format_increase_depth(format)
 	  buffer_block_rules(buf, format, else_block, do_rules, do_blocks)
-	  STRING.format_decrease_depth(format)
+	  BUFFER.format_decrease_depth(format)
    end
 end
 
@@ -943,9 +943,9 @@ local function buffer_ifdef_block(buf, format, node, do_rules, do_blocks)
    local cond_data = IFDEF.get_conditional(node)
    local cond = compose_conditional(cond_data)
    local str = "ifdef "..cond.." {"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
    buffer_conditional_rules(buf, format, node, do_rules, do_blocks)
-   STRING.add_to_buffer(buf, format, "}")
+   BUFFER.add_to_buffer(buf, format, "}")
 end
 
 local function buffer_ifelse_block(buf, format, node, do_rules, do_blocks)
@@ -958,34 +958,34 @@ local function buffer_ifelse_block(buf, format, node, do_rules, do_blocks)
 	  cond = cond.." == "..tostring(v2)
    end
    local str = "ifdef "..cond.." {"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
    buffer_conditional_rules(buf, format, node, do_rules, do_blocks)
-   STRING.add_to_buffer(buf, format, "}")
+   BUFFER.add_to_buffer(buf, format, "}")
 end
 
 local function buffer_tunif_block(buf, format, node, do_rules, do_blocks)
    local cond_data = IFDEF.get_conditional(node)
    local cond = compose_conditional(cond_data)
    local str = "tunif "..cond.." {"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
    buffer_conditional_rules(buf, format, node, do_rules, do_blocks)
-   STRING.add_to_buffer(buf, format, "}")
+   BUFFER.add_to_buffer(buf, format, "}")
 end
 
 local function buffer_boolif_block(buf, format, node, do_rules, do_blocks)
    local cond_data = IFDEF.get_conditional(node)
    local cond = compose_conditional(cond_data)
    local str = "boolif "..cond.." {"
-   STRING.add_to_buffer(buf, format, str)
+   BUFFER.add_to_buffer(buf, format, str)
    buffer_conditional_rules(buf, format, node, do_rules, do_blocks)
-   STRING.add_to_buffer(buf, format, "}")
+   BUFFER.add_to_buffer(buf, format, "}")
 end
 
 local function buffer_optional_block(buf, format, node, do_rules, do_blocks)
-   STRING.add_to_buffer(buf, format, "optional")
-   STRING.add_to_buffer(buf, format, "{")
+   BUFFER.add_to_buffer(buf, format, "optional")
+   BUFFER.add_to_buffer(buf, format, "{")
    buffer_conditional_rules(buf, format, node, do_rules, do_blocks)
-   STRING.add_to_buffer(buf, format, "}")
+   BUFFER.add_to_buffer(buf, format, "}")
 end
 
 local function args_to_string(macro)
@@ -1019,7 +1019,7 @@ local function buffer_require_rules(buf, format, node)
 			local c = classes[1]
 			local perms = TABLE.get_sorted_list_of_keys(requires[t][c])
 			local cp = compose_classperms({c,perms})
-			STRING.add_to_buffer(buf, format, "require class "..cp..";")
+			BUFFER.add_to_buffer(buf, format, "require class "..cp..";")
 		 else
 			local cp_buf = {}
 			for j=1,#classes do
@@ -1029,11 +1029,11 @@ local function buffer_require_rules(buf, format, node)
 			   cp_buf[#cp_buf+1] = "{"..cp.."}"
 			end
 			local cp_str = table.concat(cp_buf," ")
-			STRING.add_to_buffer(buf, format, "require class ".." {"..cp_str.."};")
+			BUFFER.add_to_buffer(buf, format, "require class ".." {"..cp_str.."};")
 		 end
 	  else
 		 local values = compose_list(TABLE.get_sorted_list_of_keys(requires[t]))
-		 STRING.add_to_buffer(buf, format, "require "..t.." "..values..";")
+		 BUFFER.add_to_buffer(buf, format, "require "..t.." "..values..";")
 	  end
    end
 end
@@ -1071,7 +1071,7 @@ local function buffer_compound_args(buf, format, cargs)
 		 str_list[#str_list+1] = string.sub(cmpd_arg, cur)
 	  end
 	  local str_list_str = table.concat(str_list, " ")
-	  STRING.add_to_buffer(buf, format, "string "..name.." {"..str_list_str.."};")
+	  BUFFER.add_to_buffer(buf, format, "string "..name.." {"..str_list_str.."};")
    end
 end
 
@@ -1096,16 +1096,16 @@ end
 local function buffer_macro_block(buf, format, node, do_rules, do_blocks)
    local name = MACRO.get_def_name(node)
    local args = args_to_string(node)
-   STRING.add_to_buffer(buf, format, "macro "..tostring(name).."("..args..")")
-   STRING.add_to_buffer(buf, format, "{")
-   STRING.format_increase_depth(format)
+   BUFFER.add_to_buffer(buf, format, "macro "..tostring(name).."("..args..")")
+   BUFFER.add_to_buffer(buf, format, "{")
+   BUFFER.format_increase_depth(format)
    local start = #buf
    buffer_require_rules(buf, format, node)
    local cargs = process_compound_args(node)
    buffer_compound_args(buf, format, cargs)
    buffer_block_rules(buf, format, NODE.get_block(node), do_rules, do_blocks)
-   STRING.format_decrease_depth(format)
-   STRING.add_to_buffer(buf, format, "}")
+   BUFFER.format_decrease_depth(format)
+   BUFFER.add_to_buffer(buf, format, "}")
    replace_compound_args(buf, start, cargs)
 end
 
@@ -1423,7 +1423,7 @@ local function write_simpl(head, out_dir, verbose)
    TREE.enable_active(head)
 
    local common_path = find_common_path(head)
-   local format = STRING.get_new_format(4, 80)
+   local format = BUFFER.get_new_format(4, 80)
 
    write_misc_files(misc_files, common_path, out_dir, format)
    write_modules(modules, common_path, out_dir, format)
