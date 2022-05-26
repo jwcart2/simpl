@@ -44,7 +44,7 @@ local function add_to_buffer(buf, format, str)
    end
    local max = format_get_max(format)
    if #str > max then
-	  local buf2 = STRING.split_string(str,"\n")
+	  local buf2 = STRING.split_string(str,"\n", false)
 	  for i=1,#buf2 do
 		 local v = buf2[i]
 		 local buf3 = STRING.wrap_string(v,max)

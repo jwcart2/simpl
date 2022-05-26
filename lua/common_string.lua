@@ -7,23 +7,34 @@ local string_sub = string.sub
 local math_floor = math.floor
 
 ------------------------------------------------------------------------------
-local function split_string(str, char)
+local function split_string(str, char, keep)
    local buf = {}
    if not str then
-	  return buf
-   end
-   local p = 1
-   local s,e = string_find(str, char, p)
-   while e do
-	  if s > p then
-		 buf[#buf+1] = string_sub(str, p, s-1)
+	  -- Do nothing
+   elseif not string_find(str, char) then
+	  buf[#buf+1] = str
+   else
+	  local len = #str
+	  local p = 1
+	  local s,e
+	  repeat
+		 s,e = string_find(str, char, p)
+		 if e then
+			if s > p then
+			   buf[#buf+1] = string_sub(str, p, s-1)
+			end
+			if keep then
+			   buf[#buf+1] = char
+			end
+			p = e+1
+		 end
+	  until not e or p > len
+	  if p < len then
+		 local last_str = string_sub(str, p, -1)
+		 if last_str ~= "" then
+			buf[#buf+1] = last_str
+		 end
 	  end
-	  p = e+1
-	  s,e = string_find(str, char, p)
-   end
-   local last_str = string_sub(str, p, -1)
-   if last_str ~= "" then
-	  buf[#buf+1] = last_str
    end
    return buf
 end
