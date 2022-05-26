@@ -31,9 +31,19 @@ common_string.split_string = split_string
 
 local function wrap_string(str, max)
    local buf = {}
-   if #str <= max then
+   if not str then
+	  -- Do nothing
+   elseif #str <= max then
 	  buf[#buf+1] = str
    else
+	  local orig_pad = ""
+	  local orig_str = str
+	  local s,e = string_find(orig_str, "^%s+")
+	  if e then
+		 orig_pad = string_sub(orig_str, s, e)
+		 str = string_sub(orig_str, e+1, -1)
+		 max = max - #orig_pad
+	  end
 	  local s,e = string_find(str,"%S%s")
 	  local pad = e and string_rep(" ",e) or ""
 	  if e and e > max/5 then
@@ -48,11 +58,11 @@ local function wrap_string(str, max)
 		 end
 		 if not last_s then
 			-- No spaces found
-			buf[#buf+1] = str
+			buf[#buf+1] = orig_pad..str
 			str = ""
 		 elseif s and e and e >= max and s <= max then
 			-- whitespace stradles the max
-			buf[#buf+1] = string_sub(str,1,s-1)
+			buf[#buf+1] = orig_pad..string_sub(str,1,s-1)
 			str = pad..string_sub(str,e+1)
 		 elseif last_s == 1 then
 			-- No spaces found after the pad and before max
@@ -66,15 +76,15 @@ local function wrap_string(str, max)
 			if extra > last_e then
 			   extra = last_e
 			end
-			buf[#buf+1] = string_sub(str,extra+1,s-1)
+			buf[#buf+1] = orig_pad..string_sub(str,extra+1,s-1)
 			str = pad..string_sub(str,e+1)
 		 else
-			buf[#buf+1] = string_sub(str,1,last_s-1)
+			buf[#buf+1] = orig_pad..string_sub(str,1,last_s-1)
 			str = pad..string_sub(str,last_e+1)
 		 end
 	  end
 	  if str and str ~= "" then
-		 buf[#buf+1] = str
+		 buf[#buf+1] = orig_pad..str
 	  end
    end
    return buf
