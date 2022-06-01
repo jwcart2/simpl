@@ -1035,17 +1035,20 @@ local function process_compound_args(macro)
    local cmpd_args = MACRO.get_def_compound_args(macro)
    local cargs = {}
    if cmpd_args then
-	  local n = 1
-	  for v,_ in pairs(cmpd_args) do
-		 cargs[v] = macro_name..tostring(n)
-		 n = n + 1
+	  local names = TABLE.get_sorted_list_of_keys(cmpd_args)
+	  for i=1,#names do
+		 local name = names[i]
+		 cargs[name] = macro_name..tostring(i)
 	  end
    end
    return cargs
 end
 
 local function buffer_compound_args(buf, cargs)
-   for cmpd_arg,name in pairs(cargs) do
+   local arg_names = TABLE.get_sorted_list_of_keys(cargs)
+   for i=1,#arg_names do
+	  local cmpd_arg = arg_names[i]
+	  local name = cargs[cmpd_arg]
 	  local str_list = {}
 	  local cur, s, e, arg
 	  s = 1
@@ -1196,7 +1199,7 @@ local function gather_module_and_misc_files(node, kind, do_action, do_block, dat
 	  data.modules[mod] = data.modules[mod] or {}
 	  data.modules[mod][suffix] = node
    else
-	  data.misc_files[#data.misc_files+1] = node
+	  data.misc_files[filename] = node
    end
 end
 simpl_write.gather_module_and_misc_files = gather_module_and_misc_files
@@ -1260,7 +1263,10 @@ local function open_file(dirs, filename, out_dir)
 end
 
 local function write_misc_files(misc_files, common_path, out_dir)
-   for _,node in pairs(misc_files) do
+   local misc_file_names = TABLE.get_sorted_list_of_keys(misc_files)
+   for i=1,#misc_file_names do
+	  local misc_file_name = misc_file_names[i]
+	  local node = misc_files[misc_file_name]
 	  local out
 	  local full_path = NODE.get_file_name(node)
 	  if out_dir then
@@ -1282,7 +1288,10 @@ end
 simpl_write.misc_files = write_misc_files
 
 local function write_modules(modules, common_path, out_dir)
-   for mod,modtab in pairs(modules) do
+   local module_names = TABLE.get_sorted_list_of_keys(modules)
+   for i=1,#module_names do
+	  local module_name = module_names[i]
+	  local modtab = modules[module_name]
 	  local out
 	  local te_node = modtab["te"]
 	  local if_node = modtab["if"]
@@ -1292,7 +1301,7 @@ local function write_modules(modules, common_path, out_dir)
 		 local dirs, filename = get_dirs_and_filename_from_full_path(full_path,
 																	 common_path)
 		 create_dirs(dirs, out_dir)
-		 out = open_file(dirs, mod, out_dir)
+		 out = open_file(dirs, module_name, out_dir)
 		 write_te_file(out, NODE.get_block_1(te_node))
 		 write_if_file(out, NODE.get_block_1(if_node))
 		 write_fc_file(out, NODE.get_block_1(fc_node))
