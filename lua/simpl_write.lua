@@ -1074,15 +1074,9 @@ local function replace_compound_args(buf, start, cargs)
    for i=start,#buf do
 	  local line = buf[i]
 	  if line then
-		 for old,new in pairs(cargs) do
-			local s, n
-			repeat
-			   s,n = string.gsub(line, old, new)
-			   if s and n > 0 then
-				  line = s
-				  buf[i] = s
-			   end
-			until n == 0
+		 local s,n = string.gsub(line, "[%S]+", cargs)
+		 if s and n > 0 then
+			buf[i] = s
 		 end
 	  end
    end
