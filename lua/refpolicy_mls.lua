@@ -36,13 +36,13 @@ refpolicy_mls.get_level_aliases = get_level_aliases
 -------------------------------------------------------------------------------
 local function create_sens(num_sens, parent, file, lineno)
    local first, last
-   local node = NODE.create("sensitivity", parent, file, lineno)
+   local node = NODE.create("decl", parent, file, lineno)
    first = node
    for i=1,num_sens do
 	  local s = "s"..tostring(i-1)
-	  NODE.set_data(node, {s, false})
+	  NODE.set_data(node, {"sensitivity", s})
 	  last = TREE.add_node(last, node)
-	  node = NODE.create("sensitivity", parent, file, lineno)
+	  node = NODE.create("decl", parent, file, lineno)
    end
    return first, last
 end
@@ -50,29 +50,29 @@ refpolicy_mls.create_sens = create_sens
 
 local function create_cats(num_cats, parent, file, lineno)
    local first, last
-   local node = NODE.create("category", parent, file, lineno)
+   local node = NODE.create("decl", parent, file, lineno)
    first = node
    for i=1,num_cats do
 	  local c = "c"..tostring(i-1)
-	  NODE.set_data(node, {c, false})
+	  NODE.set_data(node, {"category", c})
 	  last = TREE.add_node(last, node)
-	  node = NODE.create("category", parent, file, lineno)
+	  node = NODE.create("decl", parent, file, lineno)
    end
    return first, last
 end
 refpolicy_mls.create_cats = create_cats
 
-local function create_dominance(num_sens, parent, file, lineno)
-   local node = NODE.create("dominance", parent, file, lineno)
-   local dominance = {}
+local function create_sens_order(num_sens, parent, file, lineno)
+   local node = NODE.create("order", parent, file, lineno)
+   local order = {}
    for i=1,num_sens do
 	  local s = "s"..tostring(i-1)
-	  dominance[#dominance+1] = s
+	  order[#order+1] = s
    end
-   NODE.set_data(node, {dominance})
+   NODE.set_data(node, {"sensitivity", order})
    return node
 end
-refpolicy_mls.create_dominance = create_dominance
+refpolicy_mls.create_sens_order = create_sens_order
 
 local function create_levels(num_sens, num_cats, parent, file, lineno)
    local first, last
@@ -105,7 +105,7 @@ local function create_default_mls(num_sens, num_cats, file_parent)
    first, last = create_cats(num_cats, file_node, file_name, lineno)
    TREE.add_node(cur, first)
    cur = last
-   first = create_dominance(num_sens, file_node, file_name, lineno)
+   first = create_sens_order(num_sens, file_node, file_name, lineno)
    cur = TREE.add_node(cur, first)
    first, last = create_levels(num_sens, num_cats, file_node, file_name, lineno)
    TREE.add_node(cur, first)

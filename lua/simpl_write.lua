@@ -272,157 +272,35 @@ local function compose_call_args(args)
 end
 
 -------------------------------------------------------------------------------
-local function buffer_handleunknown_rule(buf, node)
+local function buffer_decl_rule(buf, node)
    local data = NODE.get_data(node) or {}
-   local value = tostring(data[1])
-   local str = "handleunknown "..value..";"
+   local kind = tostring(data[1])
+   local name = tostring(data[2])
+   local str = "decl "..kind.." "..name..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
-local function buffer_mls_rule(buf, node)
+local function buffer_order_rule(buf, node)
    local data = NODE.get_data(node) or {}
-   local value = tostring(data[1])
-   local str = "mls "..value..";"
+   local kind = tostring(data[1])
+   local list = compose_enclosed_list(data[2])
+   local str = "order "..kind.." "..list..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
-local function buffer_filecon_rule(buf, node)
+local function buffer_alias_rule(buf, node)
    local data = NODE.get_data(node) or {}
-   local path = tostring(data[1])
-   local file_type = tostring(data[2])
-   local context = compose_context(data[3])
-   local str = "filecon "..path.." "..file_type.." "..context..";"
+   local kind = tostring(data[1])
+   local name = tostring(data[2])
+   local str = "alias "..kind.." "..name..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
-local function buffer_common_rule(buf, node)
+local function buffer_attribute_rule(buf, node)
    local data = NODE.get_data(node) or {}
-   local common= tostring(data[1])
-   local perm_list = compose_enclosed_list(data[2])
-   local str = "common "..common.." "..perm_list..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_class_decl_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local class = tostring(data[1])
-   local str = "decl class "..class..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_class_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local class = tostring(data[1])
-   local common = data[2] or "<<none>>"
-   local perm_list = compose_enclosed_list(data[3])
-   local str = "class "..class.." "..common.." "..perm_list..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_classpermset_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local name = tostring(data[1])
-   local classperms = compose_classperms(data[2])
-   local str = "classpermset "..name.." "..classperms..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_default_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local kind = NODE.get_kind(node)
-   local class_list = compose_list(data[1])
-   local object = tostring(data[2])
-   local str
-   if kind == "default_range" then
-	  str = kind.." "..class_list.." "..object.." "..tostring(data[3])..";"
-   else
-	  str = kind.." "..class_list.." "..object..";"
-   end
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_sensitivity_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local sens = tostring(data[1])
-   local str = "decl sensitivity "..sens..";"
-   BUFFER.buffer_add_str(buf, str)
-   local aliases = data[2]
-   if aliases then
-	  if type(aliases) ~= "table" then
-		 str = "alias sensitivity "..tostring(aliases).." "..sens..";"
-		 BUFFER.buffer_add_str(buf, str)
-	  else
-		 for i=1,#aliases do
-			str = "alias sensitivity "..tostring(aliases[i]).." "..sens..";"
-			BUFFER.buffer_add_str(buf, str)
-		 end
-	  end
-   end
-end
-
-local function buffer_sensorder_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local sens_list = compose_enclosed_list(data[1])
-   local str = "order sensitivity "..sens_list..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_category_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local category = tostring(data[1])
-   local str = "category "..category..";"
-   BUFFER.buffer_add_str(buf, str)
-   local aliases = data[2]
-   if aliases then
-	  if type(aliases) ~= "table" then
-		 str = "alias category "..tostring(aliases).." "..category..";"
-		 BUFFER.buffer_add_str(buf, str)
-	  else
-		 for i=1,#aliases do
-			str = "alias category "..tostring(aliases[i]).." "..category..";"
-			BUFFER.buffer_add_str(buf, str)
-		 end
-	  end
-   end
-end
-
-local function buffer_level_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local level = compose_level(data[1])
-   local str = "level "..level..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_aliaslevel_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local alias = tostring(data[1])
-   local level = compose_level(data[2])
-   local str = "alias level "..alias.." "..level..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_aliasrange_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local alias = tostring(data[1])
-   local range = compose_range(data[2])
-   local str = "alias range "..alias.." "..range..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_mlsconstrain_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local class = compose_list(data[1])
-   local perms = compose_set(data[2])
-   local cstr = compose_constraint(data[3])
-   local str = "mlsconstrain "..class.." "..perms.." "..cstr..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_mlsvalidatetrans_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local class = compose_list(data[1])
-   local cstr = compose_constraint(data[2])
-   local str = "mlsvalidatetrans "..class.." "..cstr..";"
+   local kind = tostring(data[1])
+   local name = tostring(data[2])
+   local str = "attribute "..kind.." "..name..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
@@ -430,20 +308,6 @@ local function buffer_policycap_rule(buf, node)
    local data = NODE.get_data(node) or {}
    local caps = compose_list(data[1])
    local str = "policycap "..caps..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_typeattr_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local attr = tostring(data[1])
-   local str = "typeattr "..attr..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_roleattr_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local attr = tostring(data[1])
-   local str = "roleattr "..attr..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
@@ -463,28 +327,114 @@ local function buffer_tunable_rule(buf, node)
    BUFFER.buffer_add_str(buf, str)
 end
 
-local function buffer_type_rule(buf, node)
+local function buffer_sid_rule(buf, node)
    local data = NODE.get_data(node) or {}
-   local name = tostring(data[1])
-   local str = "type "..name..";"
+   local sid = tostring(data[1])
+   local context = compose_context(data[2])
+   local str = "sid "..sid.." "..context..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
-local function buffer_typealias_rule(buf, node)
+local function buffer_classcommon_rule(buf, node)
+   local data = NODE.get_data(node) or {}
+   local class = tostring(data[1])
+   local common= tostring(data[2])
+   local str = "classcommon "..class.." "..common..";"
+   BUFFER.buffer_add_str(buf, str)
+end
+
+local function buffer_common_rule(buf, node)
+   local data = NODE.get_data(node) or {}
+   local common= tostring(data[1])
+   local perm_list = compose_enclosed_list(data[2])
+   local str = "common "..common.." "..perm_list..";"
+   BUFFER.buffer_add_str(buf, str)
+end
+
+local function buffer_class_rule(buf, node)
+   local data = NODE.get_data(node) or {}
+   local class = tostring(data[1])
+   local perm_list = compose_enclosed_list(data[2])
+   local str = "class "..class.." "..perm_list..";"
+   BUFFER.buffer_add_str(buf, str)
+end
+
+local function buffer_classpermset_rule(buf, node)
    local data = NODE.get_data(node) or {}
    local name = tostring(data[1])
-   local aliases = data[2]
-   if aliases then
-	  if type(aliases) ~= "table" then
-		 local str = "alias type "..tostring(aliases).." "..name..";"
-		 BUFFER.buffer_add_str(buf, str)
-	  else
-		 for i=1,#aliases do
-			local str = "alias type "..tostring(aliases[i]).." "..name..";"
-			BUFFER.buffer_add_str(buf, str)
-		 end
-	  end
+   local classperms = compose_classperms(data[2])
+   local str = "classpermset "..name.." "..classperms..";"
+   BUFFER.buffer_add_str(buf, str)
+end
+
+local function buffer_default_rule(buf, node)
+   local data = NODE.get_data(node) or {}
+   local kind = tostring(data[1])
+   local class_list = compose_list(data[2])
+   local object = tostring(data[3])
+   local str
+   if kind == "range" then
+	  local range = tostring(data[4])
+	  str = "default "..kind.." "..class_list.." "..object.." "..range..";"
+   else
+	  str = "default "..kind.." "..class_list.." "..object..";"
    end
+   BUFFER.buffer_add_str(buf, str)
+end
+
+local function buffer_sensitivityaliases_rule(buf, node)
+   local data = NODE.get_data(node) or {}
+   local sensitivity = tostring(data[1])
+   local aliases = compose_list(data[2])
+   local str = "sensitivityaliases "..sensitivity.." "..aliases..";"
+   BUFFER.buffer_add_str(buf, str)
+end
+
+local function buffer_categoryaliases_rule(buf, node)
+   local data = NODE.get_data(node) or {}
+   local category = tostring(data[1])
+   local aliases = compose_list(data[2])
+   local str = "category "..category.." "..aliases..";"
+   BUFFER.buffer_add_str(buf, str)
+end
+
+local function buffer_level_rule(buf, node)
+   local data = NODE.get_data(node) or {}
+   local level = compose_level(data[1])
+   local str = "level "..level..";"
+   BUFFER.buffer_add_str(buf, str)
+end
+
+local function buffer_aliaslevel_rule(buf, node)
+   local data = NODE.get_data(node) or {}
+   local alias = tostring(data[1])
+   local level = compose_level(data[2])
+   local str = "aliaslevel "..alias.." "..level..";"
+   BUFFER.buffer_add_str(buf, str)
+end
+
+local function buffer_aliasrange_rule(buf, node)
+   local data = NODE.get_data(node) or {}
+   local alias = tostring(data[1])
+   local range = compose_range(data[2])
+   local str = "aliasrange "..alias.." "..range..";"
+   BUFFER.buffer_add_str(buf, str)
+end
+
+local function buffer_typealiases_rule(buf, node)
+   local data = NODE.get_data(node) or {}
+   local name = tostring(data[1])
+   local aliases = compose_enclosed_list(data[2])
+   local str = "typealiases "..name.." "..aliases..";"
+   BUFFER.buffer_add_str(buf, str)
+end
+
+local function buffer_typeattributes_rule(buf, node)
+   local data = NODE.get_data(node) or {}
+   local name = tostring(data[1])
+   local attrs = compose_enclosed_list(data[2])
+   local str = "typeattributes "..name.." "..attrs..";"
+   BUFFER.buffer_add_str(buf, str)
 end
 
 local function buffer_typebounds_rule(buf, node)
@@ -492,22 +442,6 @@ local function buffer_typebounds_rule(buf, node)
    local parent = tostring(data[1])
    local child = tostring(data[2])
    local str = "typebounds "..parent.." "..child..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_typeattrs_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local name = tostring(data[1])
-   local attrs = compose_list(data[2])
-   local str = "typeattrs "..name.." "..attrs..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_attrtypes_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local attr = tostring(data[1])
-   local types = compose_set(data[2])
-   local str = "attrtypes "..attr.." "..types..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
@@ -541,24 +475,14 @@ local function buffer_xperm_rule(buf, node)
    BUFFER.buffer_add_str(buf, str)
 end
 
-local function buffer_typetrans_rule(buf, node)
+local function buffer_typetransition_rule(buf, node)
    local data = NODE.get_data(node) or {}
    local src = compose_set(data[1])
    local tgt = compose_set(data[2])
    local class = compose_list(data[3])
    local obj = tostring(data[4])
-   local file = data[5] or "nil"
-   local str = "filetrans "..src.." "..tgt.." "..class.." "..obj.." "..file..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_typemember_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local src = compose_set(data[1])
-   local tgt = compose_set(data[2])
-   local class = compose_list(data[3])
-   local obj = tostring(data[4])
-   local str = "typemember "..src.." "..tgt.." "..class.." "..obj..";"
+   local file = data[5] or "*"
+   local str = "typetransition "..src.." "..tgt.." "..class.." "..obj.." "..file..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
@@ -572,21 +496,24 @@ local function buffer_typechange_rule(buf, node)
    BUFFER.buffer_add_str(buf, str)
 end
 
-local function buffer_rangetrans_rule(buf, node)
+local function buffer_typemember_rule(buf, node)
+   local data = NODE.get_data(node) or {}
+   local src = compose_set(data[1])
+   local tgt = compose_set(data[2])
+   local class = compose_list(data[3])
+   local obj = tostring(data[4])
+   local str = "typemember "..src.." "..tgt.." "..class.." "..obj..";"
+   BUFFER.buffer_add_str(buf, str)
+end
+
+local function buffer_rangetransition_rule(buf, node)
    local kind = NODE.get_kind(node)
    local data = NODE.get_data(node) or {}
    local src = compose_set(data[1])
    local tgt = compose_set(data[2])
    local class = data[3] or "nil"
    local range = compose_range(data[4])
-   local str = kind.." "..src.." "..tgt.." "..class.." "..range..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_role_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local role = tostring(data[1])
-   local str = "role "..role..";"
+   local str = "rangetransition "..src.." "..tgt.." "..class.." "..range..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
@@ -598,11 +525,11 @@ local function buffer_roletypes_rule(buf, node)
    BUFFER.buffer_add_str(buf, str)
 end
 
-local function buffer_roleattrs_rule(buf, node)
+local function buffer_roleattributes_rule(buf, node)
    local data = NODE.get_data(node) or {}
    local role = tostring(data[1])
    local attrs = compose_list(data[2])
-   local str = "roleattrs "..role.." "..attrs..";"
+   local str = "roleattributes "..role.." "..attrs..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
@@ -614,75 +541,74 @@ local function buffer_roleallow_rule(buf, node)
    BUFFER.buffer_add_str(buf, str)
 end
 
-local function buffer_roletrans_rule(buf, node)
+local function buffer_roletransition_rule(buf, node)
    local data = NODE.get_data(node) or {}
    local roles = compose_set(data[1])
    local types = compose_set(data[2])
    local class = tostring(data[3])
    local role2 = tostring(data[4])
-   local str = "roletrans "..roles.." "..types.." "..class.." "..role2..";"
+   local str = "roletransition "..roles.." "..types.." "..class.." "..role2..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
-local function buffer_user_rule(buf, node)
+local function buffer_userroles_rule(buf, node)
    local data = NODE.get_data(node) or {}
    local user = tostring(data[1])
    local roles = compose_list(data[2])
-   local mls_level = data[3] and compose_level(data[3])
-   local mls_range = data[4] and compose_range(data[4])
-   local str = "user "..user..";"
-   BUFFER.buffer_add_str(buf, str)
    str = "userrole "..user.." "..roles..";"
    BUFFER.buffer_add_str(buf, str)
-   if mls_level then
-	  str = "userlevel "..user.." "..mls_level..";"
-	  BUFFER.buffer_add_str(buf, str)
-   end
-   if mls_range then
-	  str = "userrange "..user.." "..mls_range..";"
-	  BUFFER.buffer_add_str(buf, str)
-   end
+end
+
+local function buffer_userlevel_rule(buf, node)
+   local data = NODE.get_data(node) or {}
+   local user = tostring(data[1])
+   local mls_level = data[2] and compose_level(data[2])
+   str = "userlevel "..user.." "..mls_level..";"
+   BUFFER.buffer_add_str(buf, str)
+end
+
+local function buffer_userrange_rule(buf, node)
+   local data = NODE.get_data(node) or {}
+   local user = tostring(data[1])
+   local mls_range = data[2] and compose_range(data[2])
+   str = "userrange "..user.." "..mls_range..";"
+   BUFFER.buffer_add_str(buf, str)
 end
 
 local function buffer_constrain_rule(buf, node)
    local data = NODE.get_data(node) or {}
-   local class = tostring(data[1])
+   local kind = NODE.get_kind(node)
+   local class = compose_list(data[1])
    local perms = compose_set(data[2])
    local cstr = compose_constraint(data[3])
-   local str = "constrain "..class.." "..perms.." "..cstr..";"
+   local str = kind.." "..class.." "..perms.." "..cstr..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
 local function buffer_validatetrans_rule(buf, node)
    local data = NODE.get_data(node) or {}
+   local kind = NODE.get_kind(node)
    local class = compose_list(data[1])
    local cstr = compose_constraint(data[2])
-   local str = "validatetrans "..class.." "..cstr..";"
+   local str = kind.." "..class.." "..cstr..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
-local function buffer_sid_decl_rule(buf, node)
+local function buffer_filecon_rule(buf, node)
    local data = NODE.get_data(node) or {}
-   local sid = tostring(data[1])
-   local str = "decl sid "..sid..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_sid_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local sid = tostring(data[1])
-   local context = compose_context(data[2])
-   local str = "sid "..sid.." "..context..";"
+   local path = tostring(data[1])
+   local file_type = tostring(data[2])
+   local context = compose_context(data[3])
+   local str = "filecon "..path.." "..file_type.." "..context..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
 local function buffer_fsuse_rule(buf, node)
-   local kind = NODE.get_kind(node)
-   local fs_type = string.find(kind,"fs_use_(.+)")
    local data = NODE.get_data(node) or {}
-   local fs = tostring(data[1])
-   local context = compose_context(data[2])
-   local str = "fsuse "..fs_type.." "..fs.." "..context..";"
+   local fs_type = tostring(data[1])
+   local fs_name = tostring(data[2])
+   local context = compose_context(data[3])
+   local str = "fsuse "..fs_type.." "..fs_name.." "..context..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
@@ -713,27 +639,19 @@ end
 local function buffer_netifcon_rule(buf, node)
    local data = NODE.get_data(node) or {}
    local interface = tostring(data[1])
-   local context1 = compose_context(data[2])
-   local context2 = compose_context(data[3])
-   local str = "netifcon "..interface.." "..context1.." "..context2..";"
+   local if_context = compose_context(data[2])
+   local packet_context = compose_context(data[3])
+   local str = "netifcon "..interface.." "..if_context.." "..packet_context..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
-local function buffer_nodecon4_rule(buf, node)
+local function buffer_nodecon_rule(buf, node)
    local data = NODE.get_data(node) or {}
-   local addr4 = tostring(data[1])
-   local mask4 = tostring(data[2])
-   local context = compose_context(data[3])
-   local str = "nodecon4 "..addr4.." "..mask4.." "..context..";"
-   BUFFER.buffer_add_str(buf, str)
-end
-
-local function buffer_nodecon6_rule(buf, node)
-   local data = NODE.get_data(node) or {}
-   local addr6 = tostring(data[1])
-   local mask6 = tostring(data[2])
-   local context = compose_context(data[3])
-   local str = "nodecon6 "..addr6.." "..mask6.." "..context..";"
+   local ver = tostring(data[1])
+   local addr4 = tostring(data[2])
+   local mask4 = tostring(data[3])
+   local context = compose_context(data[4])
+   local str = "nodecon "..ver.." "..addr4.." "..mask4.." "..context..";"
    BUFFER.buffer_add_str(buf, str)
 end
 
@@ -829,63 +747,57 @@ local function buffer_module_rule(buf, node)
 end
 
 local simpl_rules = {
-   ["handleunknown"] = buffer_handleunknown_rule,
-   ["mls"] = buffer_mls_rule,
-   ["filecon"] = buffer_filecon_rule,
+   ["decl"] = buffer_decl_rule,
+   ["order"] = buffer_order_rule,
+   ["alias"] = buffer_alias_rule,
+   ["attribute"] = buffer_attribute_rule,
+   ["policycap"] = buffer_policycap_rule,
+   ["bool"] = buffer_bool_rule,
+   ["tunable"] = buffer_tunable_rule,
+   ["sid"] = buffer_sid_rule,
+   ["classcommon"] = buffer_classcommon_rule,
    ["common"] = buffer_common_rule,
-   ["class_decl"] = buffer_class_decl_rule,
    ["class"] = buffer_class_rule,
    ["classpermset"] = buffer_classpermset_rule,
    ["default"] = buffer_default_rule,
-   ["sensitivity"] = buffer_sensitivity_rule,
-   ["dominance"] = buffer_sensorder_rule,
-   ["category"] = buffer_category_rule,
+   ["sensitivityaliases"] = buffer_sensitivityaliases_rule,
+   ["categoryaliases"] = buffer_categoryaliases_rule,
    ["level"] = buffer_level_rule,
    ["aliaslevel"] = buffer_aliaslevel_rule,
    ["aliasrange"] = buffer_aliasrange_rule,
-   ["mlsconstrain"] = buffer_mlsconstrain_rule,
-   ["mlsvalidatetrans"] = buffer_mlsvalidatetrans_rule,
-   ["policycap"] = buffer_policycap_rule,
-   ["attribute"] = buffer_typeattr_rule,
-   ["attribute_role"] = buffer_roleattr_rule,
-   ["bool"] = buffer_bool_rule,
-   ["tunable"] = buffer_tunable_rule,
-   ["type"] = buffer_type_rule,
-   ["typealias"] = buffer_typealias_rule,
+   ["typealiases"] = buffer_typealiases_rule,
+   ["typeattributes"] = buffer_typeattributes_rule,
    ["typebounds"] = buffer_typebounds_rule,
-   ["typeattribute"] = buffer_typeattrs_rule,
-   ["attrtypes"] = buffer_attrtypes_rule,
    ["permissive"] = buffer_permissive_rule,
    ["allow"] = buffer_av_rule,
    ["auditallow"] = buffer_av_rule,
    ["dontaudit"] = buffer_av_rule,
    ["neverallow"] = buffer_av_rule,
    ["allowxperm"] = buffer_xperm_rule,
-   ["auditallowxperm"] = buffer_xperm_rule,
-   ["dontauditxperm"] = buffer_xperm_rule,
-   ["neverallowxperm"] = buffer_xperm_rule,
-   ["type_transition"] = buffer_typetrans_rule,
-   ["type_member"] = buffer_typemember_rule,
-   ["type_change"] = buffer_typechange_rule,
-   ["range_transition"] = buffer_rangetrans_rule,
-   ["role"] = buffer_role_rule,
+   ["auditallowx"] = buffer_xperm_rule,
+   ["dontauditx"] = buffer_xperm_rule,
+   ["neverallowx"] = buffer_xperm_rule,
+   ["typetransition"] = buffer_typetransition_rule,
+   ["typechange"] = buffer_typechange_rule,
+   ["typemember"] = buffer_typemember_rule,
+   ["rangetransition"] = buffer_rangetransition_rule,
    ["roletypes"] = buffer_roletypes_rule,
-   ["roleattribute"] = buffer_roleattrs_rule,
-   ["role_allow"] = buffer_roleallow_rule,
-   ["role_transition"] = buffer_roletrans_rule,
-   ["user"] = buffer_user_rule,
+   ["roleattributes"] = buffer_roleattributes_rule,
+   ["roleallow"] = buffer_roleallow_rule,
+   ["roletransition"] = buffer_roletransition_rule,
+   ["userroles"] = buffer_userroles_rule,
+   ["userlevel"] = buffer_userlevel_rule,
+   ["userrange"] = buffer_userrange_rule,
    ["constrain"] = buffer_constrain_rule,
+   ["mlsconstrain"] = buffer_constrain_rule,
    ["validatetrans"] = buffer_validatetrans_rule,
-   ["sid_decl"] = buffer_sid_decl_rule,
-   ["sid"] = buffer_sid_rule,
-   ["fs_use_task"] = buffer_fsuse_rule,
-   ["fs_use_trans"] = buffer_fsuse_rule,
-   ["fs_use_xattr"] = buffer_fsuse_rule,
+   ["mlsvalidatetrans"] = buffer_validatetrans_rule,
+   ["filecon"] = buffer_filecon_rule,
+   ["fsuse"] = buffer_fsuse_rule,
    ["genfscon"] = buffer_genfscon_rule,
    ["portcon"] = buffer_portcon_rule,
    ["netifcon"] = buffer_netifcon_rule,
-   ["nodecon4"] = buffer_nodecon4_rule,
-   ["nodecon6"] = buffer_nodecon6_rule,
+   ["nodecon"] = buffer_nodecon_rule,
    ["pirqcon"] = buffer_pirqcon_rule,
    ["iomemcon"] = buffer_iomemcon_rule,
    ["ioportcon"] = buffer_ioportcon_rule,
@@ -1314,25 +1226,28 @@ end
 simpl_write.write_modules = write_modules
 
 -------------------------------------------------------------------------------
-local function add_order_helper(node, order_kind, order_flavor, filename, order)
+local function add_order_helper(node, order_flavor, filename, order)
    local cur = node
    local last
    while cur do
 	  local kind = NODE.get_kind(cur)
-	  if kind == order_kind then
+	  if kind == "decl" then
 		 local node_data = NODE.get_data(cur) or {}
-		 local name = node_data[1]
-		 order[#order+1] = name
-		 last = cur
+		 local flavor = node_data[1]
+		 if flavor == order_flavor then
+			local name = node_data[2]
+			order[#order+1] = name
+			last = cur
+		 end
 	  end
 	  local block1 = NODE.get_block_1(cur)
 	  local block2 = NODE.get_block_2(cur)
 	  if block1 then
-		 local last1 = add_order_helper(block1, order_kind, order_flavor, filename, order)
+		 local last1 = add_order_helper(block1, order_flavor, filename, order)
 		 last = last1 or last
 	  end
 	  if block2 then
-		 local last1 = add_order_helper(block2, order_kind, order_flavor, filename, order)
+		 local last1 = add_order_helper(block2, order_flavor, filename, order)
 		 last = last1 or last
 	  end
 	  cur = NODE.get_next(cur)
@@ -1340,9 +1255,9 @@ local function add_order_helper(node, order_kind, order_flavor, filename, order)
    return last
 end
 
-local function add_order(node, order_kind, order_flavor, filename)
+local function add_order(node, order_flavor, filename)
    local order = {}
-   local last = add_order_helper(node, order_kind, order_flavor, filename, order)
+   local last = add_order_helper(node, order_flavor, filename, order)
    if last then
 	  local new = NODE.create("order", node, filename, NODE.get_line_number(last))
 	  NODE.set_data(new, {order_flavor, order})
@@ -1356,13 +1271,13 @@ end
 local function add_orders_to_files(node, kind, do_action, do_block, data)
    local filename = NODE.get_file_name(node)
    if string.find(filename, "security_classes$") then
-	  add_order(NODE.get_block_1(node), "class_decl", "class", filename)
+	  add_order(NODE.get_block_1(node), "class", filename)
    elseif string.find(filename, "initial_sids$") then
-	  add_order(NODE.get_block_1(node), "sid_decl", "sid", filename)
+	  add_order(NODE.get_block_1(node), "sid", filename)
    elseif string.find(filename, "mls$") then
-	  add_order(NODE.get_block_1(node), "category", "category", filename)
+	  add_order(NODE.get_block_1(node), "category", filename)
    elseif string.find(filename, "mcs$") then
-	  add_order(NODE.get_block_1(node), "category", "category", filename)
+	  add_order(NODE.get_block_1(node), "category", filename)
    end
 end
 

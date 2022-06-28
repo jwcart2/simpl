@@ -423,7 +423,7 @@ end
 local function get_ip_address(state)
    local ip = {}
    local n = lex_peek(state.lex)
-   while n == ":" or string.find(n,"%X") == nil do
+   while n == ":" or string_find(n,"%X") == nil do
 	  ip[#ip+1] = n
 	  lex_next(state)
 	  n = lex_peek(state.lex)
@@ -545,46 +545,62 @@ function get_constraint_expr(state, mls, mlstrans)
    return cstr
 end
 
+local function clone_node(node)
+   local kind = NODE.get_kind(node)
+   local parent = NODE.get_parent(node)
+   local file = NODE.get_file_name(node)
+   local lineno = NODE.get_line_number(node)
+   return NODE.create(kind, parent, file, lineno)
+end
+
 --------------------------------------------------------------------------------
 local function parse_policycap_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
    local capability = get_identifier(state, "string")
-   node_set_data(node, {capability})
    get_expected(state, ";")
-   return node
+   node_set_data(node, {capability})
+   return tree_add_node(cur, node)
 end
 
 local function parse_bool_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
    local bool = get_declaration(state, "bool")
    local bool_val = get_boolean(state)
-   node_set_data(node, {bool, bool_val})
-   return node
+   node_set_kind(node, "decl")
+   node_set_data(node, {"bool", bool})
+   cur = tree_add_node(cur, node)
+   local new = clone_node(cur)
+   node_set_kind(new, "bool")
+   node_set_data(new, {bool, bool_val})
+   return tree_add_node(cur, new)
 end
 
 local function parse_gen_bool_rule(state, kind, cur, node)
-   node_set_kind(node, "bool")
-   tree_add_node(cur, node)
    get_expected(state, "(")
    local bool = get_declaration(state, "bool")
    get_expected(state, ",")
    local bool_val = get_boolean(state)
    get_expected(state, ")")
-   node_set_data(node, {bool, bool_val})
-   return node
+   node_set_kind(node, "decl")
+   node_set_data(node, {"bool", bool})
+   cur = tree_add_node(cur, node)
+   local new = clone_node(cur)
+   node_set_kind(new, "bool")
+   node_set_data(new, {bool, bool_val})
+   return tree_add_node(cur, new)
 end
 
 local function parse_tunable_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
    local tunable = get_declaration(state, "tunable")
    local bool_val = get_boolean(state)
-   node_set_data(node, {tunable, bool_val})
-   return node
+   node_set_kind(node, "decl")
+   node_set_data(node, {"tunable", tunable})
+   cur = tree_add_node(cur, node)
+   local new = clone_node(cur)
+   node_set_kind(new, "tunable")
+   node_set_data(new, {tunable, bool_val})
+   return tree_add_node(cur, new)
 end
 
 local function parse_gen_tunable_rule(state, kind, cur, node)
-   node_set_kind(node, "tunable")
-   tree_add_node(cur, node)
    get_expected(state, "(")
    local token = lex_peek(state.lex)
    local quoted = token == "`" or token == "\""
@@ -607,44 +623,59 @@ local function parse_gen_tunable_rule(state, kind, cur, node)
    get_expected(state, ",")
    local bool_val = get_boolean(state)
    get_expected(state, ")")
-   node_set_data(node, {tunable, bool_val})
-   return node
+   node_set_kind(node, "decl")
+   node_set_data(node, {"tunable", tunable})
+   cur = tree_add_node(cur, node)
+   local new = clone_node(cur)
+   node_set_kind(new, "tunable")
+   node_set_data(new, {tunable, bool_val})
+   return tree_add_node(cur, new)
 end
 
 local function parse_sid_rule(state, kind, cur, node)
    -- Either sid or initial sid
-   tree_add_node(cur, node)
    lex_next(state.lex)
    local token = lex_peek(state.lex)
    lex_prev(state.lex)
    if token == lex_EOF or state.rules[token] or
 	  state.blocks[token] then
-	  node_set_kind(node, "sid_decl")
 	  local sid = get_declaration(state, "sid")
-	  node_set_data(node, {sid})
+	  node_set_kind(node, "decl")
+	  node_set_data(node, {"sid", sid})
    else -- initial sid
 	  local sid = get_identifier(state, "sid")
 	  local context = get_context(state)
 	  node_set_data(node, {sid, context})
    end
-   return node
+   return tree_add_node(cur, node)
+end
+
+local function parse_common_rule(state, kind, cur, node)
+   local common = get_declaration(state, "common")
+   local perms = get_def_perms(state)
+   node_set_kind(node, "decl")
+   node_set_data(node, {"common", common})
+   cur = tree_add_node(cur, node)
+   local new = clone_node(cur)
+   node_set_kind(new, "common")
+   node_set_data(new, {common, perms})
+   return tree_add_node(cur, new)
 end
 
 local function parse_class_rule(state, kind, cur, node)
    -- Either class declaration or class instantiation
-   tree_add_node(cur, node)
    lex_next(state.lex)
    local token = lex_peek(state.lex)
    lex_prev(state.lex)
    if token == lex_EOF or state.rules[token] or
 	  state.blocks[token] then
-	  node_set_kind(node, "class_decl")
+	  node_set_kind(node, "decl")
 	  local class = get_declaration(state, "class")
-	  node_set_data(node, {class})
+	  node_set_data(node, {"class", class})
+	  cur = tree_add_node(cur, node)
    else -- class instantiation
 	  local class = get_identifier(state, "class")
-	  local common = false
-	  local perms = false
+	  local common, perms
 	  if lex_peek(state.lex) == "inherits" then
 		 lex_next(state.lex)
 		 common = get_identifier(state, "common")
@@ -652,22 +683,24 @@ local function parse_class_rule(state, kind, cur, node)
 	  if lex_peek(state.lex) == "{" then
 		 perms = get_def_perms(state)
 	  end
-	  node_set_data(node, {class, common, perms})
+	  if common then
+		 node_set_kind(node, "classcommon")
+		 node_set_data(node, {class, common})
+		 cur = tree_add_node(cur, node)
+		 node = nil
+	  end
+	  if perms then
+		 node = node or clone_node(cur)
+		 node_set_kind(node, "class")
+		 node_set_data(node, {class, perms})
+		 cur = tree_add_node(cur, node)
+	  end
    end
-   return node
-end
-
-local function parse_common_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local common = get_declaration(state, "common")
-   local perms = get_def_perms(state)
-   node_set_data(node, {common, perms})
-   return node
+   return cur
 end
 
 local function parse_default_rule(state, kind, cur, node)
    -- default_user, default_role, default_type
-   tree_add_node(cur, node)
    local class = get_class(state)
    local default = get_identifier(state, "string")
    if default ~= "source" and default ~= "target" then
@@ -675,12 +708,20 @@ local function parse_default_rule(state, kind, cur, node)
 					" but got \""..tostring(default).."\"")
    end
    get_expected(state, ";")
-   node_set_data(node, {class, default})
-   return node
+   local new_kind = "<<unknown>>"
+   if kind == "default_user" then
+	  new_kind = "user"
+   elseif kind == "default_role" then
+	  new_kind = "role"
+   elseif kind == "default_type" then
+	  new_kind = "type"
+   end
+   node_set_kind(node, "default")
+   node_set_data(node, {new_kind, class, default, false})
+   return tree_add_node(cur, node)
 end
 
 local function parse_default_range_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
    local class = get_class(state)
    local default = get_identifier(state, "string")
    if default ~= "source" and default ~= "target" then
@@ -693,8 +734,384 @@ local function parse_default_range_rule(state, kind, cur, node)
 					" range rule, but got \""..tostring(range).."\"")
    end
    get_expected(state, ";")
-   node_set_data(node, {class, default, range})
-   return node
+   node_set_kind(node, "default")
+   node_set_data(node, {"range", class, default, range})
+   return tree_add_node(cur, node)
+end
+
+local function parse_sensitivity_rule(state, kind, cur, node)
+   local sensitivity = get_declaration(state, "sensitivity")
+   local aliases = false
+   if lex_peek(state.lex) == "alias" then
+	  lex_next(state.lex)
+	  aliases = get_declaration_or_list(state, "sensitivity", "{", "}")
+   end
+   get_expected(state, ";")
+   node_set_kind(node, "decl")
+   node_set_data(node, {"sensitivity", sensitivity})
+   cur = tree_add_node(cur, node)
+   if aliases then
+	  if type(aliases) ~= "table" then
+		 aliases = {aliases}
+	  end
+	  for i=1,#aliases do
+		 local new = clone_node(cur)
+		 node_set_kind(new, "alias")
+		 node_set_data(new, {"sensitivity", aliases[i]})
+		 cur = tree_add_node(cur, new)
+	  end
+	  local new = clone_node(cur)
+	  node_set_kind(new, "sensitivityaliases")
+	  node_set_data(new, {sensitivity, aliases})
+	  cur = tree_add_node(cur, new)
+   end
+   return cur
+end
+
+local function parse_dominance_rule(state, kind, cur, node)
+   local sensitivies = get_list(state, "sensitivity", "{", "}")
+   node_set_kind(node, "order")
+   node_set_data(node, {"sensitivity", sensitivities})
+   return tree_add_node(cur, node)
+end
+
+local function parse_category_rule(state, kind, cur, node)
+   local category = get_declaration(state, "category")
+   local aliases = false
+   if lex_peek(state.lex) == "alias" then
+	  lex_next(state.lex)
+	  aliases = get_declaration_or_list(state, "category", "{", "}")
+   end
+   get_expected(state, ";")
+   node_set_kind(node, "decl")
+   node_set_data(node, {"category", category})
+   cur = tree_add_node(cur, node)
+   if aliases then
+	  if type(aliases) ~= "table" then
+		 aliases = {aliases}
+	  end
+	  for i=1,#aliases do
+		 local new = clone_node(cur)
+		 node_set_kind(new, "alias")
+		 node_set_data(new, {"category", aliases[i]})
+		 cur = tree_add_node(cur, new)
+	  end
+	  local new = clone_node(cur)
+	  node_set_kind(new, "categoryaliases")
+	  node_set_data(new, {category, aliases})
+	  cur = tree_add_node(cur, new)
+   end
+   return cur
+end
+
+local function parse_level_rule(state, kind, cur, node)
+   local level = get_mls_level(state)
+   get_expected(state, ";")
+   node_set_data(node, {level})
+   return tree_add_node(cur, node)
+end
+
+local function get_sens_or_cat_number(state)
+   local tok = lex_get(state.lex)
+   local num
+   if state.cdefs[tok] then
+	  num = state.cdefs[tok]
+   else
+	  num = tonumber(tok)
+   end
+   if not num then
+	  error_message(state, "Expected a number but got"..tostring(tok))
+   end
+   return num
+end
+
+local function parse_gen_sens_rule(state, kind, cur, node)
+   get_expected(state, "(")
+   local sens = get_sens_or_cat_number(state)
+   get_expected(state, ")")
+   local parent = NODE.get_parent(node)
+   local file = NODE.get_file_name(node)
+   local lineno = NODE.get_line_number(node)
+   local first, last = MLS.create_sens(sens, parent, file, lineno)
+   tree_add_node(cur, first)
+   cur = last
+   first = MLS.create_sens_order(sens, parent, file, lineno)
+   cur = tree_add_node(cur, first)
+   return cur
+end
+
+local function parse_gen_cats_rule(state, kind, cur, node)
+   get_expected(state, "(")
+   local cats = get_sens_or_cat_number(state)
+   get_expected(state, ")")
+   local parent = NODE.get_parent(node)
+   local file = NODE.get_file_name(node)
+   local lineno = NODE.get_line_number(node)
+   local first, last = MLS.create_cats(cats, parent, file, lineno)
+   tree_add_node(cur, first)
+   return last
+end
+
+local function parse_gen_levels_rule(state, kind, cur, node)
+   get_expected(state, "(")
+   local sens = get_sens_or_cat_number(state)
+   get_expected(state, ",")
+   local cats = get_sens_or_cat_number(state)
+   get_expected(state, ")")
+   local parent = NODE.get_parent(node)
+   local file = NODE.get_file_name(node)
+   local lineno = NODE.get_line_number(node)
+   local first, last = MLS.create_levels(sens, cats, parent, file, lineno)
+   tree_add_node(cur, first)
+   return last
+end
+
+local function parse_attribute_type_rule(state, kind, cur, node)
+   local attribute = get_declaration(state, "type")
+   get_expected(state, ";")
+   node_set_kind(node, "attribute")
+   node_set_data(node, {"type", attribute})
+   return tree_add_node(cur, node)
+end
+
+local function parse_type_rule(state, kind, cur, node)
+   local type_ = get_declaration(state, "type")
+   local aliases, attributes
+   if lex_peek(state.lex) == "alias" then
+	  lex_next(state.lex)
+	  aliases = get_declaration_or_list(state, "type", "{", "}")
+   end
+   if lex_peek(state.lex) == "," then
+	  lex_next(state.lex)
+	  attributes = get_comma_separated_list(state, "type")
+   end
+   get_expected(state, ";")
+   node_set_kind(node, "decl")
+   node_set_data(node, {"type", type_})
+   cur = tree_add_node(cur, node)
+   if aliases then
+	  if type(aliases) ~= "table" then
+		 aliases = {aliases}
+	  end
+	  for i=1,#aliases do
+		 local new = clone_node(cur)
+		 node_set_kind(new, "alias")
+		 node_set_data(new, {"type", aliases[i]})
+		 cur = tree_add_node(cur, new)
+	  end
+	  local new = clone_node(cur)
+	  node_set_kind(new, "typealiases")
+	  node_set_data(new, {type_, aliases})
+	  cur = tree_add_node(cur, new)
+   end
+   if attributes then
+	  local new = clone_node(cur)
+	  node_set_kind(new, "typeattributes")
+	  node_set_data(new, {type_, attributes})
+	  cur = tree_add_node(cur, new)
+   end
+   return cur
+end
+
+local function parse_typealias_rule(state, kind, cur, node)
+   local type_ = get_identifier(state, "type")
+   get_expected(state, "alias")
+   local aliases = get_declaration_or_list(state, "type", "{", "}")
+   get_expected(state, ";")
+   cur = node
+   if type(aliases) ~= "table" then
+	  aliases = {aliases}
+   end
+   for i=1,#aliases do
+	  local new = clone_node(cur)
+	  node_set_kind(new, "alias")
+	  node_set_data(new, {"type", aliases[i]})
+	  cur = tree_add_node(cur, new)
+   end
+   node_set_kind(node, "typealiases")
+   node_set_data(node, {type_, aliases})
+   return tree_add_node(cur, node)
+end
+
+local function parse_typeattribute_rule(state, kind, cur, node)
+   local type_ = get_identifier(state, "type")
+   local attributes = get_comma_separated_list(state, "type")
+   get_expected(state, ";")
+   node_set_kind(node, "typeattributes")
+   node_set_data(node, {type_, attributes})
+   return tree_add_node(cur, node)
+end
+
+local function parse_typebounds_rule(state, kind, cur, node)
+   local parent = get_identifier(state, "type")
+   local child = get_identifier(state, "type")
+   get_expected(state, ";")
+   node_set_data(node, {parent, child})
+   return tree_add_node(cur, node)
+end
+
+local function parse_permissive_rule(state, kind, cur, node)
+   local type_ = get_identifier(state, "type")
+   get_expected(state, ";")
+   node_set_data(node, {type_})
+   return tree_add_node(cur, node)
+end
+
+local function parse_allow_rule(state, kind, cur, node)
+   -- Either type allow or role allow
+   local src = get_identifier_or_set(state, TMP_FLAVOR)
+   local tgt = get_identifier_or_set(state, TMP_FLAVOR)
+   if lex_peek(state.lex) == ":" then
+	  -- type allow
+	  lex_next(state.lex)
+	  move_flavor(state.used, TMP_FLAVOR, "type")
+	  local class = get_class(state)
+	  local perms = get_perms(state)
+	  node_set_data(node, {src, tgt, class, perms})
+   else
+	  node_set_kind(node, "roleallow")
+	  move_flavor(state.used, TMP_FLAVOR, "role")
+	  node_set_data(node, {src, tgt})
+   end
+   get_expected(state, ";")
+   return tree_add_node(cur, node)
+end
+
+local function parse_av_rule(state, kind, cur, node)
+   -- dontaudit, auditallow, neverallow
+   local src = get_identifier_or_set(state, "type")
+   local tgt = get_identifier_or_set(state, "type")
+   get_expected(state, ":")
+   local class = get_class(state)
+   local perms = get_perms(state)
+   get_expected(state, ";")
+   node_set_data(node, {src, tgt, class, perms})
+   return tree_add_node(cur, node)
+end
+
+local function parse_xperm_rule(state, kind, cur, node)
+   local src = get_identifier_or_set(state, "type")
+   local tgt = get_identifier_or_set(state, "type")
+   get_expected(state, ":")
+   local class = get_class(state)
+   get_expected(state, "ioctl")
+   local xperms = get_xperms(state)
+   get_expected(state, ";")
+   if kind == "allowxperm" then
+	  kind = "allowx"
+   elseif kind == "auditallowxperm" then
+	  kind = "auditallowx"
+   elseif kind == "dontauditxperm" then
+	  kind = "dontauditx"
+   elseif kind == "neverallowxperm" then
+	  kind = "neverallowx"
+   end
+   node_set_kind(node, kind)
+   node_set_data(node, {src, tgt, class, "ioctl", xperms})
+   return tree_add_node(cur, node)
+end
+
+local function parse_type_transition_rule(state, kind, cur, node)
+   local src = get_identifier_or_set(state, "type")
+   local tgt = get_identifier_or_set(state, "type")
+   get_expected(state, ":")
+   local class = get_class(state)
+   local new = get_identifier(state, "type")
+   local file = "*"
+   if lex_peek(state.lex) ~= ";" then
+	  if lex_peek(state.lex) == "\"" then
+		 file = get_quoted_string(state)
+	  else
+		 file = get_identifier(state, "string")
+	  end
+   end
+   get_expected(state, ";")
+   node_set_kind(node, "typetransition")
+   node_set_data(node, {src, tgt, class, new, file})
+   return tree_add_node(cur, node)
+end
+
+local function parse_type_change_rule(state, kind, cur, node)
+   local src = get_identifier_or_set(state, "type")
+   local tgt = get_identifier_or_set(state, "type")
+   get_expected(state, ":")
+   local class = get_class(state)
+   local new = get_identifier(state, "type")
+   get_expected(state, ";")
+   node_set_kind(node, "typechange")
+   node_set_data(node, {src, tgt, class, new})
+   return tree_add_node(cur, node)
+end
+
+local function parse_type_member_rule(state, kind, cur, node)
+   local src = get_identifier_or_set(state, "type")
+   local tgt = get_identifier_or_set(state, "type")
+   get_expected(state, ":")
+   local class = get_class(state)
+   local new = get_identifier(state, "type")
+   get_expected(state, ";")
+   node_set_kind(node, "typemember")
+   node_set_data(node, {src, tgt, class, new})
+   return tree_add_node(cur, node)
+end
+
+local function parse_range_transition_rule(state, kind, cur, node)
+   local src = get_identifier_or_set(state, "type")
+   local tgt = get_identifier_or_set(state, "type")
+   get_expected(state, ":")
+   local class = get_class(state)
+   local range = get_mls_range(state)
+   get_expected(state, ";")
+   node_set_kind(node, "rangetransition")
+   node_set_data(node, {src, tgt, class, range})
+   return tree_add_node(cur, node)
+end
+
+local function parse_attribute_role_rule(state, kind, cur, node)
+   local attribute = get_declaration(state, "role")
+   get_expected(state, ";")
+   node_set_kind(node, "attribute")
+   node_set_data(node, {"role", attribute})
+   return tree_add_node(cur, node)
+end
+
+local function parse_role_rule(state, kind, cur, node)
+   local role = get_declaration(state, "role")
+   local types
+   if lex_peek(state.lex) == "types" then
+	  lex_next(state.lex)
+	  types = get_identifier_or_set(state, "type")
+   end
+   get_expected(state, ";")
+   node_set_kind(node, "decl")
+   node_set_data(node, {"role", role})
+   cur = tree_add_node(cur, node)
+   if types then
+	  local new = clone_node(cur)
+	  node_set_kind(new, "roletypes")
+	  node_set_data(new, {role, types})
+	  cur = tree_add_node(cur, new)
+   end
+   return cur
+end
+
+local function parse_roleattribute_rule(state, kind, cur, node)
+   local role = get_identifier(state, "role")
+   local attributes = get_comma_separated_list(state, "role")
+   get_expected(state, ";")
+   node_set_kind(node, "roleattributes")
+   node_set_data(node, {role, attributes})
+   return tree_add_node(cur, node)
+end
+
+local function parse_role_transition_rule(state, kind, cur, node)
+   local src = get_identifier_or_set(state, "role")
+   local tgt = get_identifier_or_set(state, "type")
+   local new = get_identifier(state, "role")
+   get_expected(state, ";")
+   node_set_kind(node, "roletransition")
+   node_set_data(node, {src, tgt, new})
+   return tree_add_node(cur, node)
 end
 
 local function get_gen_user_role_list(state)
@@ -738,8 +1155,6 @@ local function get_gen_user_role_list(state)
 end
 
 local function parse_user_rule(state, kind, cur, node)
-   node_set_kind(node, "user")
-   tree_add_node(cur, node)
    local user = get_declaration(state, "user")
    get_expected(state, "roles")
    local roles = get_identifier_or_list(state, "role", "{", "}")
@@ -752,12 +1167,29 @@ local function parse_user_rule(state, kind, cur, node)
 	  lex_next(state.lex)
 	  mls_range = get_mls_range(state)
    end
-   node_set_data(node, {user, roles, mls_level, mls_range})
-   return node
+   node_set_kind(node, "decl")
+   node_set_data(node, {"user", user})
+   cur = tree_add_node(cur, node)
+   local new = clone_node(cur)
+   node_set_kind(new, "userroles")
+   node_set_data(new, {user, roles})
+   cur = tree_add_node(cur, new)
+   if mls_level then
+	  new = clone_node(cur)
+	  node_set_kind(new, "userlevel")
+	  node_set_data(new, {user, mls_level})
+	  cur = tree_add_node(cur, new)
+   end
+   if mls_range then
+	  new = clone_node(cur)
+	  node_set_kind(new, "userrange")
+	  node_set_data(new, {user, mls_range})
+	  cur = tree_add_node(cur, new)
+   end
+   return cur
 end
 
 local function parse_gen_user_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
    get_expected(state, "(")
    local user = get_declaration(state, "user")
    get_expected(state, ",")
@@ -791,356 +1223,102 @@ local function parse_gen_user_rule(state, kind, cur, node)
 	  local lineno = NODE.get_line_number(node)
 	  node_set_kind(node, "ifdef")
 	  IFDEF.set_conditional(node, {"enable_mls"})
-	  local new_user = node_create("user", node, file, lineno)
-	  node_set_data(new_user, {user, mls_roles, mls_level, mls_range})
-	  NODE.set_then_block(node, new_user)
+	  local ifdef = tree_add_node(cur, node)
+	  -- ifdef then branch
+	  local new = node_create("decl", ifdef, file, lineno)
+	  node_set_data(new, {"user", user})
+	  NODE.set_then_block(ifdef, new)
+	  cur = new
+	  new = clone_node(cur)
+	  node_set_kind(new, "userroles")
+	  node_set_data(new, {user, mls_roles})
+	  cur = tree_add_node(cur, new)
+	  new = clone_node(cur)
+	  node_set_kind(new, "userlevel")
+	  node_set_data(new, {user, mls_level})
+	  cur = tree_add_node(cur, new)
+	  new = clone_node(cur)
+	  node_set_kind(new, "userrange")
+	  node_set_data(new, {user, mls_range})
+	  cur = tree_add_node(cur, new)
 	  if mcs_cats then
 		 local maxcatnum = state.cdefs["mcs_num_cats"] - 1
 		 local mcs_range = {{"s0"},{"s0",{{"c0","c"..maxcatnum}}}}
 		 local mcs_level = "s0"
-		 local new_ifdef = node_create("ifdef", node, file, lineno)
+		 -- ifdef else branch
+		 local new_ifdef = node_create("ifdef", ifdef, file, lineno)
 		 IFDEF.set_conditional(new_ifdef, {"enable_mcs"})
-		 NODE.set_else_block(node, new_ifdef)
-		 new_user = node_create("user", new_ifdef, file, lineno)
-		 node_set_data(new_user, {user, roles, mcs_level, mcs_range})
-		 NODE.set_then_block(new_ifdef, new_user)
-		 new_user = node_create("user", new_ifdef, file, lineno)
-		 node_set_data(new_user, {user, roles, false, false})
-		 NODE.set_else_block(new_ifdef, new_user)
+		 NODE.set_else_block(ifdef, new_ifdef)
+		 -- new_ifdef then branch
+		 new = node_create("decl", new_ifdef, file, lineno)
+		 node_set_data(new, {"user", user})
+		 NODE.set_then_block(new_ifdef, new)
+		 cur = new
+		 new = clone_node(cur)
+		 node_set_kind(new, "userroles")
+		 node_set_data(new, {user, mls_roles})
+		 cur = tree_add_node(cur, new)
+		 new = clone_node(cur)
+		 node_set_kind(new, "userlevel")
+		 node_set_data(new, {user, mcs_level})
+		 cur = tree_add_node(cur, new)
+		 new = clone_node(cur)
+		 node_set_kind(new, "userrange")
+		 node_set_data(new, {user, mcs_range})
+		 cur = tree_add_node(cur, new)
+		 -- new_ifdef else branch
+		 new = node_create("decl", new_ifdef, file, lineno)
+		 node_set_data(new, {"user", user})
+		 NODE.set_else_block(new_ifdef, new)
+		 cur = new
+		 new = clone_node(cur)
+		 node_set_kind(new, "userroles")
+		 node_set_data(new, {user, mls_roles})
+		 cur = tree_add_node(cur, new)
+		 -- no userlevel or userrange
 	  else
-		 new_user = node_create("user", node, file, lineno)
-		 node_set_data(new_user, {user, roles, false, false})
-		 NODE.set_else_block(node, new_user)
+		 -- ifdef else block
+		 new = node_create("decl", ifdef, file, lineno)
+		 node_set_data(new, {"user", user})
+		 NODE.set_else_block(ifdef, new)
+		 cur = new
+		 new = clone_node(cur)
+		 node_set_kind(new, "userroles")
+		 node_set_data(new, {user, mls_roles})
+		 cur = tree_add_node(cur, new)
 	  end
+	  cur = ifdef
    else
-	  node_set_kind(node, "user")
-	  node_set_data(node, {user, roles, false, false})
+	  node_set_kind(node, "decl")
+	  node_set_data(node, {"user", user})
+	  cur = tree_add_node(cur, node)
+	  local new = clone_node(cur)
+	  node_set_kind(new, "userroles")
+	  node_set_data(new, {user, roles})
+	  cur = tree_add_node(cur, new)
    end
-   return node
-end
-
-local function parse_role_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local role = get_declaration(state, "role")
-   local types
-   if lex_peek(state.lex) == "types" then
-	  lex_next(state.lex)
-	  types = get_identifier_or_set(state, "type")
-   end
-   get_expected(state, ";")
-   node_set_data(node, {role, types})
-   return node
-end
-
-local function parse_type_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local type_ = get_declaration(state, "type")
-   local aliases = false
-   local attributes = false
-   if lex_peek(state.lex) == "alias" then
-	  lex_next(state.lex)
-	  aliases = get_declaration_or_list(state, "type", "{", "}")
-   end
-   if lex_peek(state.lex) == "," then
-	  lex_next(state.lex)
-	  attributes = get_comma_separated_list(state, "type")
-   end
-   get_expected(state, ";")
-   node_set_data(node, {type_, aliases, attributes})
-   return node
-end
-
-local function parse_typealias_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local type_ = get_identifier(state, "type")
-   get_expected(state, "alias")
-   local aliases = get_declaration_or_list(state, "type", "{", "}")
-   get_expected(state, ";")
-   node_set_data(node, {type_, aliases})
-   return node
-end
-
-local function parse_typebounds_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local parent = get_identifier(state, "type")
-   local child = get_identifier(state, "type")
-   get_expected(state, ";")
-   node_set_data(node, {parent, child})
-   return node
-end
-
-local function parse_permissive_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local type_ = get_identifier(state, "type")
-   get_expected(state, ";")
-   node_set_data(node, {type_})
-   return node
-end
-
-local function parse_attribute_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local attribute = get_declaration(state, "type")
-   get_expected(state, ";")
-   node_set_data(node, {attribute})
-   return node
-end
-
-local function parse_typeattribute_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local type_ = get_identifier(state, "type")
-   local attributes = get_comma_separated_list(state, "type")
-   get_expected(state, ";")
-   node_set_data(node, {type_, attributes})
-   return node
-end
-
-local function parse_attribute_role_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local attribute = get_declaration(state, "role")
-   get_expected(state, ";")
-   node_set_data(node, {attribute})
-   return node
-end
-
-local function parse_roleattribute_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local role = get_identifier(state, "role")
-   local attributes = get_comma_separated_list(state, "role")
-   get_expected(state, ";")
-   node_set_data(node, {role, attributes})
-   return node
-end
-
-local function parse_sensitivity_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local sensitivity = get_declaration(state, "sensitivity")
-   local aliases = false
-   if lex_peek(state.lex) == "alias" then
-	  lex_next(state.lex)
-	  aliases = get_declaration_or_list(state, "sensitivity", "{", "}")
-   end
-   get_expected(state, ";")
-   node_set_data(node, {sensitivity, aliases})
-   return node
-end
-
-local function parse_dominance_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local sensitivies = get_list(state, "sensitivity", "{", "}")
-   node_set_data(node, {sensitivities})
-   return node
-end
-
-local function parse_category_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local category = get_declaration(state, "category")
-   local aliases = false
-   if lex_peek(state.lex) == "alias" then
-	  lex_next(state.lex)
-	  aliases = get_declaration_or_list(state, "category", "{", "}")
-   end
-   get_expected(state, ";")
-   node_set_data(node, {category, aliases})
-   return node
-end
-
-local function parse_level_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local level = get_mls_level(state)
-   get_expected(state, ";")
-   node_set_data(node, {level})
-   return node
-end
-
-local function get_sens_or_cat_number(state)
-   local tok = lex_get(state.lex)
-   local num
-   if state.cdefs[tok] then
-	  num = state.cdefs[tok]
-   else
-	  num = tonumber(tok)
-   end
-   if not num then
-	  error_message(state, "Expected a number but got"..tostring(tok))
-   end
-   return num
-end
-
-local function parse_gen_sens_rule(state, kind, cur, node)
-   get_expected(state, "(")
-   local sens = get_sens_or_cat_number(state)
-   get_expected(state, ")")
-   local parent = NODE.get_parent(node)
-   local file = NODE.get_file_name(node)
-   local lineno = NODE.get_line_number(node)
-   local first, last = MLS.create_sens(sens, parent, file, lineno)
-   tree_add_node(cur, first)
-   cur = last
-   first = MLS.create_dominance(sens, parent, file, lineno)
-   cur = tree_add_node(cur, first)
    return cur
-end
-
-local function parse_gen_cats_rule(state, kind, cur, node)
-   get_expected(state, "(")
-   local cats = get_sens_or_cat_number(state)
-   get_expected(state, ")")
-   local parent = NODE.get_parent(node)
-   local file = NODE.get_file_name(node)
-   local lineno = NODE.get_line_number(node)
-   local first, last = MLS.create_cats(cats, parent, file, lineno)
-   tree_add_node(cur, first)
-   return last
-end
-
-local function parse_gen_levels_rule(state, kind, cur, node)
-   get_expected(state, "(")
-   local sens = get_sens_or_cat_number(state)
-   get_expected(state, ",")
-   local cats = get_sens_or_cat_number(state)
-   get_expected(state, ")")
-   local parent = NODE.get_parent(node)
-   local file = NODE.get_file_name(node)
-   local lineno = NODE.get_line_number(node)
-   local first, last = MLS.create_levels(sens, cats, parent, file, lineno)
-   tree_add_node(cur, first)
-   return last
-end
-
-local function parse_allow_rule(state, kind, cur, node)
-   -- Either type allow or role allow
-   tree_add_node(cur, node)
-   local src = get_identifier_or_set(state, TMP_FLAVOR)
-   local tgt = get_identifier_or_set(state, TMP_FLAVOR)
-   if lex_peek(state.lex) == ":" then
-	  -- type allow
-	  lex_next(state.lex)
-	  move_flavor(state.used, TMP_FLAVOR, "type")
-	  local class = get_class(state)
-	  local perms = get_perms(state)
-	  node_set_data(node, {src, tgt, class, perms})
-   else
-	  node_set_kind(node, "role_allow")
-	  move_flavor(state.used, TMP_FLAVOR, "role")
-	  node_set_data(node, {src, tgt})
-   end
-   get_expected(state, ";")
-   return node
-end
-
-local function parse_xperm_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local src = get_identifier_or_set(state, "type")
-   local tgt = get_identifier_or_set(state, "type")
-   get_expected(state, ":")
-   local class = get_class(state)
-   get_expected(state, "ioctl")
-   local xperms = get_xperms(state)
-   get_expected(state, ";")
-   node_set_data(node, {src, tgt, class, "ioctl", xperms})
-   return node
-end
-
-local function parse_av_rule(state, kind, cur, node)
-   -- dontaudit, auditallow, neverallow
-   tree_add_node(cur, node)
-   local src = get_identifier_or_set(state, "type")
-   local tgt = get_identifier_or_set(state, "type")
-   get_expected(state, ":")
-   local class = get_class(state)
-   local perms = get_perms(state)
-   get_expected(state, ";")
-   node_set_data(node, {src, tgt, class, perms})
-   return node
-end
-
-local function parse_type_transition_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local src = get_identifier_or_set(state, "type")
-   local tgt = get_identifier_or_set(state, "type")
-   get_expected(state, ":")
-   local class = get_class(state)
-   local new = get_identifier(state, "type")
-   local file = "*"
-   if lex_peek(state.lex) ~= ";" then
-	  if lex_peek(state.lex) == "\"" then
-		 file = get_quoted_string(state)
-	  else
-		 file = get_identifier(state, "string")
-	  end
-   end
-   node_set_data(node, {src, tgt, class, new, file})
-   get_expected(state, ";")
-   return node
-end
-
-local function parse_type_change_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local src = get_identifier_or_set(state, "type")
-   local tgt = get_identifier_or_set(state, "type")
-   get_expected(state, ":")
-   local class = get_class(state)
-   local new = get_identifier(state, "type")
-   node_set_data(node, {src, tgt, class, new})
-   get_expected(state, ";")
-   return node
-end
-
-local function parse_type_member_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local src = get_identifier_or_set(state, "type")
-   local tgt = get_identifier_or_set(state, "type")
-   get_expected(state, ":")
-   local class = get_class(state)
-   local new = get_identifier(state, "type")
-   node_set_data(node, {src, tgt, class, new})
-   get_expected(state, ";")
-   return node
-end
-
-local function parse_range_transition_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local src = get_identifier_or_set(state, "type")
-   local tgt = get_identifier_or_set(state, "type")
-   get_expected(state, ":")
-   local class = get_class(state)
-   local range = get_mls_range(state)
-   node_set_data(node, {src, tgt, class, range})
-   get_expected(state, ";")
-   return node
-end
-
-local function parse_role_transition_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local src = get_identifier_or_set(state, "role")
-   local tgt = get_identifier_or_set(state, "type")
-   local new = get_identifier(state, "role")
-   node_set_data(node, {src, tgt, new})
-   get_expected(state, ";")
-   return node
 end
 
 local function parse_constrain_rule(state, kind, cur, node)
    -- constrain or mlsconstrain
    local mls = (kind == "mlsconstrain")
-   tree_add_node(cur, node)
    local class = get_class(state)
    local perms = get_perms(state)
    local cexpr = get_constraint_expr(state, mls, false)
-   node_set_data(node, {class, perms, cexpr})
    get_expected(state, ";")
-   return node
+   node_set_data(node, {class, perms, cexpr})
+   return tree_add_node(cur, node)
 end
 
 local function parse_validatetrans_rule(state, kind, cur, node)
    -- validatetrans or mlsvalidatetrans
    local mls = (kind == "mlsvalidatetrans")
-   tree_add_node(cur, node)
    local class = get_class(state)
    local cexpr = get_constraint_expr(state, mls, true)
-   node_set_data(node, {class, cexpr})
    get_expected(state, ";")
-   return node
+   node_set_data(node, {class, cexpr})
+   return tree_add_node(cur, node)
 end
 
 
@@ -1148,8 +1326,6 @@ local valid_file_types = {["-b"]=true, ["-c"]=true, ["-d"]=true, ["-p"]=true,
    ["-l"]=true, ["-s"]=true, ["--"]=true}
 
 local function parse_filecon_rule(state, kind, cur, node)
-   node_set_kind(node, "filecon")
-   tree_add_node(cur, node)
    local path = kind
    if string.find(lex_peek(state.lex),"/") then
 	  if (path == "HOME_ROOT" or path == "HOME_DIR") then
@@ -1172,22 +1348,23 @@ local function parse_filecon_rule(state, kind, cur, node)
 	  end
    end
    local context = get_context(state)
+   node_set_kind(node, "filecon")
    node_set_data(node, {path, file_type, context})
-   return node
+   return tree_add_node(cur, node)
 end
 
 local function parse_fs_use_rule(state, kind, cur, node)
    -- fs_use_xattr, fs_use_task, fs_use_trans
-   tree_add_node(cur, node)
+   local fs_type = string.find(kind,"fs_use_(.+)")
    local fs_name = get_identifier(state, "string")
    local context = get_context(state)
-   node_set_data(node, {fs_name, context})
    get_expected(state, ";")
-   return node
+   node_set_kind(node, "fsuse")
+   node_set_data(node, {fs_type, fs_name, context})
+   return tree_add_node(cur, node)
 end
 
 local function parse_genfscon_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
    local fs_name = get_identifier(state, "string")
    local path = get_identifier(state, "string")
    local file_type = "all"
@@ -1201,29 +1378,10 @@ local function parse_genfscon_rule(state, kind, cur, node)
    end
    local context = get_context(state)
    node_set_data(node, {fs_name, path, file_type, context})
-   return node
-end
-
-local function parse_netifcon_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local interface = get_identifier(state, "string")
-   local if_context = get_context(state)
-   local packet_context = get_context(state)
-   node_set_data(node, {interface, if_context, packet_context})
-   return node
-end
-
-local function parse_nodecon_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
-   local subnet = get_ip_address(state)
-   local netmask = get_ip_address(state)
-   local context = get_context(state)
-   node_set_data(node, {subnet, netmask, context})
-   return node
+   return tree_add_node(cur, node)
 end
 
 local function parse_portcon_rule(state, kind, cur, node)
-   tree_add_node(cur, node)
    local protocol = get_identifier(state, "string")
    if protocol ~= "udp" and protocol ~= "tcp" and protocol ~= "dccp" and
 	  protocol ~= "sctp" then
@@ -1234,7 +1392,24 @@ local function parse_portcon_rule(state, kind, cur, node)
    local ports = get_ports(state)
    local context = get_context(state)
    node_set_data(node, {protocol, ports, context})
-   return node
+   return tree_add_node(cur, node)
+end
+
+local function parse_netifcon_rule(state, kind, cur, node)
+   local interface = get_identifier(state, "string")
+   local if_context = get_context(state)
+   local packet_context = get_context(state)
+   node_set_data(node, {interface, if_context, packet_context})
+   return tree_add_node(cur, node)
+end
+
+local function parse_nodecon_rule(state, kind, cur, node)
+   local subnet = get_ip_address(state)
+   local netmask = get_ip_address(state)
+   local context = get_context(state)
+   local ver = string_find(subnet, ":") and "ipv6" or "ipv4"
+   node_set_data(node, {ver, subnet, netmask, context})
+   return tree_add_node(cur, node)
 end
 
 -----------------------------------------------------------------------------
@@ -1255,8 +1430,6 @@ local function get_call_args_expr(state)
 end
 
 local function parse_macro_call(state, name, cur, node)
-   node_set_kind(node, "call")
-   tree_add_node(cur, node)
    local call_args = {}
    get_expected(state, "(")
    if lex_peek(state.lex) == "$*" then
@@ -1292,16 +1465,15 @@ local function parse_macro_call(state, name, cur, node)
 	  end
    end
    get_expected(state, ")")
+   node_set_kind(node, "call")
    MACRO.set_call_data(node, name, call_args, false, false)
-   return node
+   return tree_add_node(cur, node)
 end
 
 local function parse_m4_module(state, kind, cur, node)
    if NODE.get_kind(cur) ~= false then
 	  error_message(state, "Module statement must be first in the file")
    end
-   node_set_kind(node, "module")
-   tree_add_node(cur, node)
    get_expected(state, "(")
    local name = lex_get(state.lex)
    local filename = LEX.filename(state.lex)
@@ -1318,8 +1490,9 @@ local function parse_m4_module(state, kind, cur, node)
 	  end
    end
    get_expected(state, ")")
+   node_set_kind(node, "module")
    node_set_data(node, {name})
-   return node
+   return tree_add_node(cur, node)
 end
 
 -------------------------------------------------------------------------------
@@ -1356,7 +1529,6 @@ local function skip_block(state, _, cur, node)
 end
 
 local function parse_conditional_block(state, kind, cur, node, parse_func)
-   tree_add_node(cur, node)
    local notallowed = {policy_module=true, module=true, template=true,
 					   interface=true, class=true, common=true, gen_tunable=true} 
    if kind == "if" then
@@ -1376,11 +1548,10 @@ local function parse_conditional_block(state, kind, cur, node, parse_func)
 	  local else_block = parse_func(state, node, notallowed, "}")
 	  NODE.set_else_block(node, else_block)
    end
-   return node
+   return tree_add_node(cur, node)
 end
 
 local function parse_m4_conditional_block(state, kind, cur, node, parse_func)
-   tree_add_node(cur, node)
    local notallowed = {policy_module=true, module=true, template=true,
 					   interface=true, gen_tunable=true}
    get_expected(state, "(")
@@ -1415,14 +1586,13 @@ local function parse_m4_conditional_block(state, kind, cur, node, parse_func)
 	  NODE.set_else_block(node, else_block)
    end
    get_expected(state,")")
-   return node
+   return tree_add_node(cur, node)
 end
 
 local function parse_m4_ifelse_block(state, kind, cur, node, parse_func)
    local notallowed = {file=true, policy_module=true, module=true, template=true,
 					   interface=true, common=true, class=true}
    warning_message(state, "Found ifelse block", 0)
-   tree_add_node(cur, node)
    get_expected(state, "(")
    get_expected(state, "`")
    local v1 = lex_get(state.lex)
@@ -1466,7 +1636,7 @@ local function parse_m4_ifelse_block(state, kind, cur, node, parse_func)
 	  end
    end
    get_expected(state,")")
-   return node
+   return tree_add_node(cur, node)
 end
 
 local function parse_obj_perm_set(state)
@@ -1526,10 +1696,9 @@ local function parse_m4_define_block(state, kind, cur, node, parse_func)
    if lex_peek(state.lex) == ")" then
 	  lex_next(state.lex)
 	  add_to_used(state, name, "tunable")
-	  tree_add_node(cur, node)
 	  node_set_kind(node, "tunable")
 	  node_set_data(node, {name, "true"})
-	  return node
+	  return tree_add_node(cur, node)
    end
    get_expected(state, ",")
    get_expected(state, "`")
@@ -1551,20 +1720,16 @@ local function parse_m4_define_block(state, kind, cur, node, parse_func)
 	  local list = parse_obj_perm_set(state)
 	  node_set_kind(node, "def")
 	  node_set_data(node, {kind, name, list})
-	  tree_add_node(cur, node)
-	  return node
+	  return tree_add_node(cur, node)
    elseif name == "basic_ubac_conditions" then
 	  local expr = parse_basic_ubac_conditions(state)
 	  node_set_kind(node, "def")
 	  node_set_data(node, {"cstr_exp", name, expr})
-	  tree_add_node(cur, node)
-	  return node
+	  return tree_add_node(cur, node)
    elseif lex_peek(state.lex) == "{" then
 	  -- All of these should be handled elswhere
 	  error_message(state, "Did not expect to find a def_set")
    end
-   node_set_kind(node, "macro")
-   tree_add_node(cur, node)
    if state.used then
 	  error_message(state, "Macro not allowed inside a macro")
    end
@@ -1576,16 +1741,15 @@ local function parse_m4_define_block(state, kind, cur, node, parse_func)
    local notallowed = {file=true, policy_module=true, module=true, template=true,
 					   interface=true, common=true, class=true}
    local block = parse_func(state, node, notallowed, "'")
-   NODE.set_block(node, block)
-   get_expected(state,")")
    state.used = nil
    state.decls = nil
-   return node
+   get_expected(state,")")
+   node_set_kind(node, "macro")
+   NODE.set_block(node, block)
+   return tree_add_node(cur, node)
 end
 
 local function parse_m4_macro_block(state, kind, cur, node, parse_func)
-   node_set_kind(node, "macro")
-   tree_add_node(cur, node)
    get_expected(state, "(")
    get_expected(state, "`")
    local name = get_identifier(state, nil)
@@ -1603,11 +1767,12 @@ local function parse_m4_macro_block(state, kind, cur, node, parse_func)
    local notallowed = {file=true, policy_module=true, module=true, template=true,
 					   interface=true, common=true, class=true}
    local block = parse_func(state, node, notallowed, "'")
-   NODE.set_block(node, block)
-   get_expected(state,")")
    state.used = nil
    state.decls = nil
-   return node
+   get_expected(state,")")
+   node_set_kind(node, "macro")
+   NODE.set_block(node, block)
+   return tree_add_node(cur, node)
 end
 
 local function parse_require_block(state, kind, cur, node)
@@ -1733,7 +1898,7 @@ local rules = {
    ["typealias"] = parse_typealias_rule,
    ["typebounds"] = parse_typebounds_rule,
    ["permissive"] = parse_permissive_rule,
-   ["attribute"] = parse_attribute_rule,
+   ["attribute"] = parse_attribute_type_rule,
    ["typeattribute"] = parse_typeattribute_rule,
    ["attribute_role"] = parse_attribute_role_rule,
    ["roleattribute"] = parse_roleattribute_rule,
